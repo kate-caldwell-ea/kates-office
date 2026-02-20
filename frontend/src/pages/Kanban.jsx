@@ -1,3 +1,4 @@
+import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
 import {
   Plus,
@@ -13,7 +14,6 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-const API_URL = 'http://localhost:3847/api'
 
 const columns = [
   { id: 'inbox', title: 'Inbox', emoji: '📥', color: 'bg-warm-100 border-warm-200' },

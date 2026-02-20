@@ -1,3 +1,4 @@
+import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -15,7 +16,6 @@ import {
 } from 'lucide-react'
 import useStore from '../store/useStore'
 
-const API_URL = 'http://localhost:3847/api'
 
 // Office quotes
 const quotes = [

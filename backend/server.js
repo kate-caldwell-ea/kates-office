@@ -7,13 +7,57 @@ const Database = require('better-sqlite3');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 
-// Initialize database
-const dbPath = path.join(__dirname, 'db', 'kates-office.db');
-const db = new Database(dbPath);
+console.log('Starting Kate\'s Office server...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Current directory:', __dirname);
 
-// Run schema
-const schema = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
-db.exec(schema);
+// Initialize database
+let db;
+try {
+  // Use /app/data in production (Fly.io volume), local db/ directory otherwise
+  const dataDir = process.env.NODE_ENV === 'production' ? '/app/data' : path.join(__dirname, 'db');
+  console.log('Data directory:', dataDir);
+  
+  if (!fs.existsSync(dataDir)) {
+    console.log('Creating data directory...');
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  
+  try {
+    console.log('Data directory contents:', fs.readdirSync(dataDir));
+  } catch (e) {
+    console.log('Cannot read data directory:', e.message);
+  }
+  
+  const dbPath = path.join(dataDir, 'kates-office.db');
+  console.log('Database path:', dbPath);
+  
+  db = new Database(dbPath);
+  console.log('Database opened successfully');
+
+  // Run schema
+  const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+  console.log('Schema path:', schemaPath);
+  console.log('Schema exists:', fs.existsSync(schemaPath));
+  const schema = fs.readFileSync(schemaPath, 'utf8');
+  db.exec(schema);
+  console.log('Schema executed successfully');
+} catch (error) {
+  console.error('Database initialization error:', error.message);
+  console.error('Stack:', error.stack);
+  // Try in-memory database as fallback
+  console.log('Attempting in-memory database as fallback...');
+  try {
+    db = new Database(':memory:');
+    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    db.exec(schema);
+    console.log('In-memory database initialized successfully');
+  } catch (fallbackError) {
+    console.error('Fallback also failed:', fallbackError.message);
+    process.exit(1);
+  }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -570,7 +614,7 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3847;
-server.listen(PORT, () => {
-  console.log(`\n🏠 Kate's Office server running on http://localhost:${PORT}\n`);
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🏠 Kate's Office server running on port ${PORT}\n`);
 });

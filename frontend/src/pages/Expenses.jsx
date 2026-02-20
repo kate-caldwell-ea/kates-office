@@ -1,3 +1,4 @@
+import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
 import {
   Plus,
@@ -14,7 +15,6 @@ import {
   Bot,
 } from 'lucide-react'
 
-const API_URL = 'http://localhost:3847/api'
 
 const categoryIcons = {
   gifts: Gift,

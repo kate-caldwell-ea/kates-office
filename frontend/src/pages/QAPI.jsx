@@ -1,3 +1,4 @@
+import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
 import {
   Shield,
@@ -11,7 +12,6 @@ import {
   TrendingUp,
 } from 'lucide-react'
 
-const API_URL = 'http://localhost:3847/api'
 
 const severityColors = {
   critical: 'bg-red-100 text-red-700 border-red-200',

@@ -1,3 +1,4 @@
+import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState, useRef } from 'react'
 import {
   Send,
@@ -10,7 +11,6 @@ import {
   Loader2,
 } from 'lucide-react'
 
-const API_URL = 'http://localhost:3847/api'
 
 export default function Chat() {
   const [messages, setMessages] = useState([])
@@ -24,7 +24,7 @@ export default function Chat() {
     fetchMessages()
     
     // Connect to WebSocket for real-time updates
-    const ws = new WebSocket(`ws://localhost:3847/ws`)
+    const ws = new WebSocket(WS_URL)
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
       if (data.type === 'chat_message') {
