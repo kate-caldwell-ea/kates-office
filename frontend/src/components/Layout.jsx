@@ -12,12 +12,16 @@ import {
   Flower2,
   Frame,
   Sparkles,
+  Clock,
+  HelpCircle,
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Assignments', href: '/assignments', icon: KanbanSquare },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
+  { name: 'Questions', href: '/questions', icon: HelpCircle },
+  { name: 'Cron Jobs', href: '/cron', icon: Clock },
   { name: 'QAPI', href: '/qapi', icon: Shield },
   { name: 'Chat', href: '/chat', icon: MessageCircle },
 ]

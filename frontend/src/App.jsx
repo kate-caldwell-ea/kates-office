@@ -5,6 +5,8 @@ import Kanban from './pages/Kanban'
 import Expenses from './pages/Expenses'
 import QAPI from './pages/QAPI'
 import Chat from './pages/Chat'
+import CronJobs from './pages/CronJobs'
+import Questions from './pages/Questions'
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="assignments" element={<Kanban />} />
           <Route path="expenses" element={<Expenses />} />
+          <Route path="questions" element={<Questions />} />
+          <Route path="cron" element={<CronJobs />} />
           <Route path="qapi" element={<QAPI />} />
           <Route path="chat" element={<Chat />} />
         </Route>
