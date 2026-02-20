@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* Kate's Office - Custom Theme */
+@theme {
+  /* Warm cream and sage color palette */
+  --color-cream-50: #FFFDF7;
+  --color-cream-100: #FEF9EF;
+  --color-cream-200: #FDF3E0;
+  --color-cream-300: #FAEBD2;
+  --color-cream-400: #F5DFC0;
+  --color-cream-500: #EDD4AE;
+  
+  --color-sage-50: #F4F7F4;
+  --color-sage-100: #E8EFE8;
+  --color-sage-200: #D1DFD1;
+  --color-sage-300: #B5CBB5;
+  --color-sage-400: #95B295;
+  --color-sage-500: #779977;
+  --color-sage-600: #5F7A5F;
+  --color-sage-700: #4A604A;
+  --color-sage-800: #3A4D3A;
+  --color-sage-900: #2D3D2D;
+  
+  --color-rose-gold-50: #FDF8F6;
+  --color-rose-gold-100: #FAF0EB;
+  --color-rose-gold-200: #F5DDD3;
+  --color-rose-gold-300: #E8C4B4;
+  --color-rose-gold-400: #D9A792;
+  --color-rose-gold-500: #C99076;
+  --color-rose-gold-600: #B07A5F;
+  --color-rose-gold-700: #8F614B;
+  --color-rose-gold-800: #744F3D;
+  --color-rose-gold-900: #5A3D30;
+  
+  /* Warm neutrals */
+  --color-warm-50: #FAFAF8;
+  --color-warm-100: #F5F4F0;
+  --color-warm-200: #E8E6E0;
+  --color-warm-300: #D4D1C8;
+  --color-warm-400: #B5B1A5;
+  --color-warm-500: #968F80;
+  --color-warm-600: #7A7367;
+  --color-warm-700: #625C52;
+  --color-warm-800: #4D4842;
+  --color-warm-900: #3A3733;
+}
+
+/* Custom base styles */
+body {
+  @apply bg-cream-50 text-warm-800 antialiased;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Smooth transitions everywhere */
+* {
+  @apply transition-colors duration-150;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-cream-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-sage-300 rounded-full hover:bg-sage-400;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white rounded-2xl shadow-sm border border-cream-200 p-6;
+  @apply hover:shadow-md transition-shadow duration-200;
+}
+
+.card-hover {
+  @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+}
+
+/* Button base */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium;
+  @apply transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-sage-500 text-white hover:bg-sage-600 focus:ring-sage-400;
+}
+
+.btn-secondary {
+  @apply bg-cream-200 text-warm-700 hover:bg-cream-300 focus:ring-cream-400;
+}
+
+.btn-rose {
+  @apply bg-rose-gold-500 text-white hover:bg-rose-gold-600 focus:ring-rose-gold-400;
+}
+
+/* Input styles */
+.input {
+  @apply w-full px-4 py-2.5 rounded-xl border border-cream-300 bg-white;
+  @apply focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent;
+  @apply placeholder:text-warm-400;
+}
+
+/* Badge styles */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-sage {
+  @apply bg-sage-100 text-sage-700;
+}
+
+.badge-rose {
+  @apply bg-rose-gold-100 text-rose-gold-700;
+}
+
+.badge-cream {
+  @apply bg-cream-200 text-warm-600;
+}
+
+/* Skeleton loading */
+.skeleton {
+  @apply animate-pulse bg-cream-200 rounded;
+}
+
+/* Kanban column drag styles */
+.kanban-column {
+  @apply bg-cream-100/50 rounded-2xl p-4 min-h-96;
+}
+
+.kanban-card {
+  @apply bg-white rounded-xl p-4 shadow-sm border border-cream-200 cursor-grab;
+  @apply hover:shadow-md hover:border-sage-200 transition-all duration-200;
+}
+
+.kanban-card:active {
+  @apply cursor-grabbing shadow-lg scale-[1.02];
+}
+
+/* Dragging state */
+.dragging {
+  @apply opacity-50;
+}

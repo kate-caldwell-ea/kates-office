@@ -1,0 +1,101 @@
+{
+  "officeName": "Kate's Office",
+  "tagline": "Where life runs smoothly",
+  
+  "personality": {
+    "greeting": "Welcome back! Let's make today productive.",
+    "emptyInbox": "Inbox is clear — what shall we tackle next?",
+    "taskComplete": "Another one done! You're on a roll.",
+    "morningGreeting": "Good morning! Here's what's on the agenda today.",
+    "eveningGreeting": "Winding down for the day? Let me know if you need anything."
+  },
+  
+  "quotes": [
+    "The secret of getting ahead is getting started. — Mark Twain",
+    "Well done is better than well said. — Benjamin Franklin",
+    "Simplicity is the ultimate sophistication. — Leonardo da Vinci",
+    "The best time to plant a tree was 20 years ago. The second best time is now.",
+    "Do one thing every day that scares you. — Eleanor Roosevelt",
+    "Life is what happens when you're busy making other plans. — John Lennon",
+    "The only way to do great work is to love what you do. — Steve Jobs",
+    "In the middle of difficulty lies opportunity. — Albert Einstein"
+  ],
+  
+  "decor": {
+    "deskPlant": {
+      "name": "Fidget",
+      "type": "Small succulent in a terracotta pot",
+      "description": "A little green friend that reminds Kate to take breaks"
+    },
+    "photoFrames": [
+      {
+        "description": "Lake Como sunset",
+        "caption": "Dream destination"
+      },
+      {
+        "description": "Abstract geometric art print",
+        "caption": "Adds a modern touch"
+      }
+    ],
+    "mug": {
+      "text": "But First, Coffee",
+      "color": "Sage green with gold lettering"
+    },
+    "notepad": {
+      "description": "Leather-bound notepad",
+      "color": "Warm cognac"
+    }
+  },
+  
+  "theme": {
+    "colors": {
+      "primary": "#6B8E7B",
+      "primaryLight": "#8FB09E",
+      "primaryDark": "#4A6B5A",
+      "secondary": "#D4A574",
+      "secondaryLight": "#E8C9A8",
+      "background": "#FAF8F5",
+      "surface": "#FFFFFF",
+      "surfaceHover": "#F5F3F0",
+      "text": "#2D3436",
+      "textMuted": "#636E72",
+      "border": "#E8E4E0",
+      "success": "#6B8E7B",
+      "warning": "#D4A574",
+      "error": "#C0706B",
+      "urgent": "#B85450"
+    },
+    "fonts": {
+      "heading": "Playfair Display, Georgia, serif",
+      "body": "Inter, system-ui, sans-serif"
+    }
+  },
+  
+  "statusLabels": {
+    "inbox": { "label": "Inbox", "emoji": "📥", "color": "#636E72" },
+    "in_progress": { "label": "In Progress", "emoji": "🔄", "color": "#6B8E7B" },
+    "blocked": { "label": "Blocked", "emoji": "🚧", "color": "#C0706B" },
+    "waiting": { "label": "Waiting", "emoji": "⏳", "color": "#D4A574" },
+    "done": { "label": "Done", "emoji": "✓", "color": "#4A6B5A" }
+  },
+  
+  "priorityLabels": {
+    "urgent": { "label": "Urgent", "color": "#B85450" },
+    "high": { "label": "High", "color": "#D4A574" },
+    "normal": { "label": "Normal", "color": "#6B8E7B" },
+    "low": { "label": "Low", "color": "#636E72" }
+  },
+  
+  "expenseCategories": [
+    { "id": "gifts", "label": "Gifts", "emoji": "🎁" },
+    { "id": "travel", "label": "Travel", "emoji": "✈️" },
+    { "id": "dining", "label": "Dining", "emoji": "🍽️" },
+    { "id": "subscriptions", "label": "Subscriptions", "emoji": "📦" },
+    { "id": "household", "label": "Household", "emoji": "🏠" },
+    { "id": "health", "label": "Health", "emoji": "💊" },
+    { "id": "entertainment", "label": "Entertainment", "emoji": "🎬" },
+    { "id": "services", "label": "Services", "emoji": "🔧" },
+    { "id": "api_tokens", "label": "API/Tokens", "emoji": "🤖" },
+    { "id": "other", "label": "Other", "emoji": "📋" }
+  ]
+}
