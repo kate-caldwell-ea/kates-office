@@ -101,6 +101,18 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // Block search engine indexing
+  app.use((req, res, next) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+    next();
+  });
+
+  // robots.txt - block all crawlers
+  app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send('User-agent: *\nDisallow: /\n');
+  });
+
   // Serve static frontend files
   const frontendPath = process.env.NODE_ENV === 'production' 
     ? path.join(__dirname, 'frontend_dist')
