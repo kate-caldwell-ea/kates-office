@@ -741,6 +741,164 @@ async function startServer() {
     }
   });
 
+  // ============= DAILY QUESTIONS API =============
+
+  app.get('/api/questions', (req, res) => {
+    try {
+      const { status, date } = req.query;
+      let query = 'SELECT * FROM daily_questions';
+      const params = [];
+      const conditions = [];
+      
+      if (status) {
+        conditions.push('status = ?');
+        params.push(status);
+      }
+      if (date) {
+        conditions.push('date = ?');
+        params.push(date);
+      }
+      
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const questions = db.prepare(query).all(...params);
+      questions.forEach(q => {
+        q.questions = q.questions ? JSON.parse(q.questions) : [];
+        q.answers = q.answers ? JSON.parse(q.answers) : [];
+      });
+      res.json(questions);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/questions/:id', (req, res) => {
+    try {
+      const question = db.prepare('SELECT * FROM daily_questions WHERE id = ?').get(req.params.id);
+      if (!question) return res.status(404).json({ error: 'Not found' });
+      
+      question.questions = question.questions ? JSON.parse(question.questions) : [];
+      question.answers = question.answers ? JSON.parse(question.answers) : [];
+      res.json(question);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/questions', (req, res) => {
+    try {
+      const id = uuidv4();
+      const { date, questions } = req.body;
+      const dateValue = date || new Date().toISOString().split('T')[0];
+      
+      db.prepare(`
+        INSERT INTO daily_questions (id, date, questions, status)
+        VALUES (?, ?, ?, 'pending')
+      `).run(id, dateValue, JSON.stringify(questions));
+      
+      const record = db.prepare('SELECT * FROM daily_questions WHERE id = ?').get(id);
+      record.questions = JSON.parse(record.questions);
+      record.answers = [];
+      
+      logActivity('questions_posted', `Kate posted ${questions.length} questions for ${dateValue}`, 'questions', id);
+      broadcast('questions_posted', record);
+      db.save();
+      
+      res.status(201).json(record);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch('/api/questions/:id', (req, res) => {
+    try {
+      const { id } = req.params;
+      const { answers, status } = req.body;
+      
+      const updates = [];
+      const values = [];
+      
+      if (answers !== undefined) {
+        updates.push('answers = ?');
+        values.push(JSON.stringify(answers));
+      }
+      if (status !== undefined) {
+        updates.push('status = ?');
+        values.push(status);
+        if (status === 'answered') {
+          updates.push('answered_at = datetime("now")');
+        }
+      }
+      
+      values.push(id);
+      db.prepare(`UPDATE daily_questions SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+      
+      const record = db.prepare('SELECT * FROM daily_questions WHERE id = ?').get(id);
+      record.questions = record.questions ? JSON.parse(record.questions) : [];
+      record.answers = record.answers ? JSON.parse(record.answers) : [];
+      
+      logActivity('questions_answered', `Zack answered questions for ${record.date}`, 'questions', id);
+      broadcast('questions_answered', record);
+      db.save();
+      
+      res.json(record);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============= CRON JOBS API =============
+
+  app.get('/api/cron', (req, res) => {
+    try {
+      const jobs = db.prepare('SELECT * FROM cron_jobs ORDER BY next_run ASC').all();
+      jobs.forEach(j => {
+        j.schedule = j.schedule ? JSON.parse(j.schedule) : {};
+      });
+      res.json(jobs);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/cron/sync', (req, res) => {
+    try {
+      const { jobs } = req.body;
+      
+      // Clear existing and insert fresh data
+      db.prepare('DELETE FROM cron_jobs').run();
+      
+      const insert = db.prepare(`
+        INSERT INTO cron_jobs (id, name, schedule, next_run, last_run, last_status, enabled, payload_summary, synced_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `);
+      
+      jobs.forEach(job => {
+        insert.run(
+          job.id,
+          job.name,
+          JSON.stringify(job.schedule),
+          job.state?.nextRunAtMs ? new Date(job.state.nextRunAtMs).toISOString() : null,
+          job.state?.lastRunAtMs ? new Date(job.state.lastRunAtMs).toISOString() : null,
+          job.state?.lastStatus || null,
+          job.enabled ? 1 : 0,
+          job.payload?.text?.substring(0, 100) || job.payload?.message?.substring(0, 100) || null
+        );
+      });
+      
+      logActivity('cron_synced', `Synced ${jobs.length} cron jobs`, 'cron', null);
+      db.save();
+      
+      res.json({ synced: jobs.length, timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============= TASKS API (legacy compatibility) =============
 
   app.get('/api/tasks', (req, res) => {

@@ -92,6 +92,30 @@ CREATE TABLE IF NOT EXISTS notes (
     updated_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Daily questions from Kate
+CREATE TABLE IF NOT EXISTS daily_questions (
+    id TEXT PRIMARY KEY,
+    date TEXT DEFAULT (date('now')),
+    questions TEXT NOT NULL, -- JSON array of questions
+    answers TEXT, -- JSON array of answers (filled by Zack)
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'answered', 'skipped')),
+    created_at TEXT DEFAULT (datetime('now')),
+    answered_at TEXT
+);
+
+-- Cron jobs sync (mirrors OpenClaw cron state)
+CREATE TABLE IF NOT EXISTS cron_jobs (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    schedule TEXT NOT NULL, -- JSON schedule object
+    next_run TEXT,
+    last_run TEXT,
+    last_status TEXT,
+    enabled INTEGER DEFAULT 1,
+    payload_summary TEXT,
+    synced_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
