@@ -1,6 +1,9 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useStore from '../store/useStore'
 import useAuthStore from '../store/useAuthStore'
+import CommandPalette from './CommandPalette'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -16,6 +19,8 @@ import {
   Clock,
   HelpCircle,
   LogOut,
+  Search,
+  Command,
 } from 'lucide-react'
 
 const navigation = [
@@ -31,6 +36,26 @@ const navigation = [
 export default function Layout() {
   const { sidebarOpen, toggleSidebar } = useStore()
   const { logout, authRequired } = useAuthStore()
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const navigate = useNavigate()
+
+  // Handle command palette actions
+  const handleCommandAction = (action) => {
+    if (action === 'new-task') {
+      navigate('/assignments?new=1')
+    } else if (action === 'new-expense') {
+      navigate('/expenses?new=1')
+    }
+  }
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts({
+    onCommandPalette: () => setCommandPaletteOpen(true),
+    onNewTask: () => navigate('/assignments?new=1'),
+    onNewExpense: () => navigate('/expenses?new=1'),
+    onCloseModal: () => setCommandPaletteOpen(false),
+    modalOpen: commandPaletteOpen
+  })
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
@@ -142,18 +167,33 @@ export default function Layout() {
               <span className="text-sm text-warm-500">Kate is online</span>
             </div>
           </div>
-          
-          {/* Logout button - only show if auth is required */}
-          {authRequired && (
+
+          <div className="flex items-center gap-3">
+            {/* Search / Command Palette Trigger */}
             <button
-              onClick={logout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cream-100 text-warm-500 hover:text-warm-700 transition-colors"
-              title="Sign out"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-cream-200 text-warm-500 hover:border-sage-300 hover:bg-cream-50 transition-all duration-200 group"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm">Sign out</span>
+              <Search className="w-4 h-4 group-hover:text-sage-500" />
+              <span className="text-sm hidden sm:inline">Search or jump to...</span>
+              <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded bg-cream-100 text-xs text-warm-400">
+                <Command className="w-3 h-3" />
+                <span>K</span>
+              </div>
             </button>
-          )}
+            
+            {/* Logout button - only show if auth is required */}
+            {authRequired && (
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cream-100 text-warm-500 hover:text-warm-700 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm hidden sm:inline">Sign out</span>
+              </button>
+            )}
+          </div>
         </header>
 
         {/* Page Content */}
@@ -161,6 +201,13 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onAction={handleCommandAction}
+      />
     </div>
   )
 }
