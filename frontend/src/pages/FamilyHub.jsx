@@ -501,7 +501,7 @@ function SectionHeader({ icon: Icon, title, count, color = 'sage' }) {
 }
 
 // Upcoming birthdays banner
-function UpcomingBirthdaysBanner() {
+function UpcomingBirthdaysBanner({ familyData }) {
   const allPeople = [...familyData.immediate, ...familyData.extended, ...familyData.greatNiecesNephews]
   const upcoming = allPeople
     .map(p => ({ ...p, days: getDaysUntilBirthday(p.birthday) }))
@@ -610,7 +610,7 @@ export default function FamilyHub() {
       </div>
       
       {/* Upcoming Birthdays Banner */}
-      <UpcomingBirthdaysBanner />
+      <UpcomingBirthdaysBanner familyData={familyData} />
       
       {/* Immediate Family */}
       <section>

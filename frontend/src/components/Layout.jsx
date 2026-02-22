@@ -216,9 +216,9 @@ export default function Layout() {
                 <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-white" />
               </div>
               <span className="text-sm text-sage-700 hidden sm:inline">
-                Kate is {kateStatus.message.toLowerCase()}
+                Kate is {(kateStatus.message || 'ready').toLowerCase()}
               </span>
-              <span className="text-sm sm:hidden">{kateStatus.icon}</span>
+              <span className="text-sm sm:hidden">{kateStatus.icon || '✨'}</span>
             </div>
           </div>
 
