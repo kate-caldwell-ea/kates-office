@@ -164,6 +164,9 @@ async function startServer() {
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws' });
 
+  // Trust proxy for secure cookies behind Fly.io
+  app.set('trust proxy', 1);
+  
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
   app.use(cookieParser());
