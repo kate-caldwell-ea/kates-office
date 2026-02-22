@@ -1,13 +1,46 @@
 # Kate's Office Fixes Applied
 
-**Date:** 2026-02-21 11:53 UTC
+**Date:** 2026-02-22 03:50 UTC
 **Deployed:** ✅ https://kates-office-api.fly.dev/
 
 ---
 
 ## Summary
 
-Fixed **7 issues** from QA report. All changes deployed successfully.
+Fixed **9 issues** total (7 from QA report + 2 new issues). All changes deployed successfully.
+
+---
+
+## Latest Fixes (2026-02-22)
+
+### Settings Page Missing ✅
+- **Issue:** `/settings` route showed blank page (route didn't exist)
+- **Fix:** Created complete Settings page with:
+  - Kate profile card with online status
+  - Appearance settings (dark mode toggle - placeholder)
+  - Notification preferences
+  - Integration status (Calendar, Email, Telegram)
+  - Security status
+  - Version footer
+- **Files:** `frontend/src/pages/Settings.jsx`, `frontend/src/App.jsx`, `frontend/src/components/Layout.jsx`
+
+### Calendar Widget Error State ✅
+- **Issue:** CalendarWidget returned `null` on error, showing blank space
+- **Fix:** Added friendly error state with:
+  - Styled card with calendar icon
+  - "Calendar syncing..." message
+  - "Kate is working on the connection" subtitle
+  - Retry button with RefreshCw icon
+- **File:** `frontend/src/components/CalendarWidget.jsx`
+
+### Mobile Responsiveness ✅
+- **Verified:** Layout already has proper mobile support:
+  - Hamburger menu toggle in header
+  - Slide-in drawer sidebar on mobile
+  - Overlay when sidebar is open
+  - Mobile bottom navigation bar
+  - Auto-close sidebar on navigation
+  - Responsive breakpoints throughout
 
 ---
 
