@@ -126,6 +126,109 @@ body {
   @apply animate-pulse bg-cream-200 rounded;
 }
 
+/* Page titles with Playfair Display */
+.page-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  @apply text-2xl font-semibold text-warm-800 tracking-tight;
+}
+
+/* Command Palette Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.15s ease-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Enhanced card hover effects */
+.card-interactive {
+  @apply bg-white rounded-2xl shadow-sm border border-cream-200 p-6;
+  @apply hover:shadow-lg hover:-translate-y-1 hover:border-sage-200;
+  @apply transition-all duration-300 ease-out cursor-pointer;
+}
+
+/* Subtle hover lift for cards */
+.hover-lift {
+  @apply transition-all duration-200 ease-out;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-0.5 shadow-md;
+}
+
+/* Kanban card enhanced hover */
+.kanban-card {
+  @apply bg-white rounded-xl p-4 shadow-sm border border-cream-200 cursor-grab;
+  @apply transition-all duration-200 ease-out;
+}
+
+.kanban-card:hover {
+  @apply shadow-lg border-sage-200 -translate-y-0.5;
+  box-shadow: 0 8px 25px -5px rgba(119, 153, 119, 0.15);
+}
+
+.kanban-card:active {
+  @apply cursor-grabbing shadow-xl scale-[1.02];
+}
+
+/* Navigation link hover effect */
+.nav-link-hover {
+  @apply relative overflow-hidden;
+}
+
+.nav-link-hover::after {
+  content: '';
+  @apply absolute inset-0 bg-sage-100 opacity-0 transition-opacity duration-200;
+  z-index: -1;
+}
+
+.nav-link-hover:hover::after {
+  @apply opacity-100;
+}
+
+/* Quick action cards */
+.quick-action {
+  @apply transition-all duration-200 ease-out;
+}
+
+.quick-action:hover {
+  @apply -translate-y-1;
+}
+
+/* Shimmer effect for premium feel */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-cream-200) 25%,
+    var(--color-cream-100) 50%,
+    var(--color-cream-200) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 /* Kanban column drag styles */
 .kanban-column {
   @apply bg-cream-100/50 rounded-2xl p-4 min-h-96;
