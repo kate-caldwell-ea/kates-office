@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Heart,
   Plane,
+  Settings,
 } from 'lucide-react'
 
 const navigation = [
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Cron Jobs', href: '/cron', icon: Clock },
   { name: 'QAPI', href: '/qapi', icon: Shield },
   { name: 'Security', href: '/security', icon: ShieldAlert },
+  { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Chat', href: '/chat', icon: MessageCircle },
 ]
 

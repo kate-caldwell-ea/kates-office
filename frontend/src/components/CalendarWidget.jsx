@@ -1,6 +1,6 @@
 import { API_URL } from '../config.js';
 import { useEffect, useState } from 'react'
-import { Calendar, Gift, Plane, Heart, Clock, Stethoscope, Users, DollarSign } from 'lucide-react'
+import { Calendar, Gift, Plane, Heart, Clock, Stethoscope, Users, DollarSign, RefreshCw } from 'lucide-react'
 
 const eventTypeIcons = {
   medical: Stethoscope,
@@ -13,13 +13,20 @@ const eventTypeIcons = {
 export default function CalendarWidget() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
+  const fetchCalendar = () => {
+    setLoading(true)
+    setError(false)
     fetch(`${API_URL}/calendar`)
       .then(res => res.json())
       .then(setData)
-      .catch(console.error)
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchCalendar()
   }, [])
 
   if (loading) {
@@ -30,7 +37,26 @@ export default function CalendarWidget() {
     )
   }
 
-  if (!data) return null
+  if (error || !data) {
+    return (
+      <div className="card bg-gradient-to-br from-sage-50 to-cream-50 border-sage-100">
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center mb-3">
+            <Calendar className="w-6 h-6 text-sage-500" />
+          </div>
+          <h3 className="font-medium text-warm-700 mb-1">Calendar syncing...</h3>
+          <p className="text-sm text-warm-500 mb-3">Kate is working on the connection</p>
+          <button
+            onClick={fetchCalendar}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-sage-700 bg-sage-100 rounded-lg hover:bg-sage-200 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const upcomingEvents = data.events?.slice(0, 4) || []
 

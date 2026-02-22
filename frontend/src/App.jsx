@@ -10,6 +10,7 @@ import Questions from './pages/Questions'
 import Security from './pages/Security'
 import FamilyHub from './pages/FamilyHub'
 import TravelPlanner from './pages/TravelPlanner'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="cron" element={<CronJobs />} />
           <Route path="qapi" element={<QAPI />} />
           <Route path="security" element={<Security />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="chat" element={<Chat />} />
         </Route>
       </Routes>
