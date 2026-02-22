@@ -1,13 +1,29 @@
 # Kate's Office Fixes Applied
 
-**Date:** 2026-02-22 03:50 UTC
+**Date:** 2026-02-22 03:55 UTC
 **Deployed:** ✅ https://kates-office-api.fly.dev/
 
 ---
 
 ## Summary
 
-Fixed **9 issues** total (7 from QA report + 2 new issues). All changes deployed successfully.
+Fixed **11 issues** total (7 from QA report + 4 new issues). All changes deployed successfully.
+
+---
+
+## Critical Fixes (2026-02-22 03:55 UTC)
+
+### Family Hub Page Not Rendering ✅
+- **Issue:** `/family` route showed blank white page (JavaScript error)
+- **Root Cause:** `UpcomingBirthdaysBanner` component referenced `familyData` variable that was out of scope (defined as state inside FamilyHub, but component was defined outside)
+- **Fix:** Added `familyData` as a prop to `UpcomingBirthdaysBanner` component
+- **Files:** `frontend/src/pages/FamilyHub.jsx`
+
+### Travel Planner Page Not Rendering ✅
+- **Issue:** `/travel` route showed blank white page (JavaScript error)
+- **Root Cause:** `kateStatus.message.toLowerCase()` in Layout.jsx crashed when `kateStatus.message` was undefined (API returned incomplete data)
+- **Fix:** Added null safety: `(kateStatus.message || 'ready').toLowerCase()`
+- **Files:** `frontend/src/components/Layout.jsx`
 
 ---
 
