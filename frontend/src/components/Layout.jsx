@@ -2,6 +2,7 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import useStore from '../store/useStore'
 import { API_URL } from '../config.js'
+import { PWAInstallPrompt, PWAInstalledBanner } from './PWAInstallPrompt'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -80,6 +81,10 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-cream-50 flex flex-col md:flex-row">
+      {/* PWA Components */}
+      <PWAInstallPrompt />
+      <PWAInstalledBanner />
+
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div 
@@ -245,14 +250,14 @@ export default function Layout() {
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-cream-200 px-2 py-1 safe-area-inset-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-cream-200 px-2 py-1 safe-area-bottom">
           <div className="flex items-center justify-around">
             {mobileNav.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+                  `flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors touch-manipulation ${
                     isActive
                       ? 'text-sage-600'
                       : 'text-warm-400'
