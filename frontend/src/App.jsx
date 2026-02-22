@@ -8,6 +8,7 @@ import QAPI from './pages/QAPI';
 import Chat from './pages/Chat';
 import CronJobs from './pages/CronJobs';
 import Questions from './pages/Questions';
+import Calendar from './pages/Calendar';
 import Login from './pages/Login';
 import useAuthStore from './store/useAuthStore';
 
@@ -74,6 +75,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="assignments" element={<Kanban />} />
+          <Route path="calendar" element={<Calendar />} />
           <Route path="expenses" element={<Expenses />} />
           <Route path="questions" element={<Questions />} />
           <Route path="cron" element={<CronJobs />} />

@@ -899,6 +899,131 @@ async function startServer() {
     }
   });
 
+  // ============= CALENDAR API =============
+
+  // Try to load calendar module (will fail gracefully if tokens not available)
+  let calendar;
+  try {
+    calendar = require('./calendar');
+    console.log('Calendar module loaded successfully');
+    console.log('Available accounts:', calendar.getAvailableAccounts());
+  } catch (error) {
+    console.log('Calendar module not available:', error.message);
+  }
+
+  // Get available calendar accounts
+  app.get('/api/calendar/accounts', async (req, res) => {
+    if (!calendar) {
+      return res.json({ accounts: [], error: 'Calendar not configured' });
+    }
+    
+    try {
+      const accounts = calendar.getAvailableAccounts();
+      res.json({ accounts });
+    } catch (error) {
+      console.error('Error getting calendar accounts:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get calendars for an account
+  app.get('/api/calendar/:account/calendars', async (req, res) => {
+    if (!calendar) {
+      return res.status(503).json({ error: 'Calendar not configured' });
+    }
+    
+    try {
+      const calendars = await calendar.getCalendarList(req.params.account);
+      res.json({ calendars });
+    } catch (error) {
+      console.error('Error getting calendar list:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get events from all calendars for an account
+  app.get('/api/calendar/:account/events', async (req, res) => {
+    if (!calendar) {
+      return res.status(503).json({ error: 'Calendar not configured' });
+    }
+    
+    try {
+      const { days = 7 } = req.query;
+      const daysNum = parseInt(days) || 7;
+      
+      const timeMin = new Date().toISOString();
+      const timeMax = new Date(Date.now() + daysNum * 24 * 60 * 60 * 1000).toISOString();
+      
+      const events = await calendar.getAllEventsForAccount(req.params.account, {
+        timeMin,
+        timeMax
+      });
+      
+      res.json({ events, timeMin, timeMax });
+    } catch (error) {
+      console.error('Error getting calendar events:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get aggregated events from multiple accounts
+  app.get('/api/calendar/events', async (req, res) => {
+    if (!calendar) {
+      return res.status(503).json({ error: 'Calendar not configured' });
+    }
+    
+    try {
+      const { accounts: accountsQuery, days = 7 } = req.query;
+      const daysNum = parseInt(days) || 7;
+      
+      // Default to zack-gosolvr if no accounts specified
+      const requestedAccounts = accountsQuery 
+        ? accountsQuery.split(',') 
+        : ['zack-gosolvr'];
+      
+      const availableAccounts = calendar.getAvailableAccounts();
+      const accountsToFetch = requestedAccounts.filter(a => availableAccounts.includes(a));
+      
+      if (accountsToFetch.length === 0) {
+        return res.json({ events: [], error: 'No valid accounts specified' });
+      }
+      
+      const timeMin = new Date().toISOString();
+      const timeMax = new Date(Date.now() + daysNum * 24 * 60 * 60 * 1000).toISOString();
+      
+      const allEvents = [];
+      
+      for (const account of accountsToFetch) {
+        try {
+          const events = await calendar.getAllEventsForAccount(account, {
+            timeMin,
+            timeMax
+          });
+          allEvents.push(...events);
+        } catch (error) {
+          console.error(`Error fetching events for ${account}:`, error.message);
+        }
+      }
+      
+      // Sort all events by start time
+      allEvents.sort((a, b) => {
+        const aTime = new Date(a.start?.dateTime || a.start?.date);
+        const bTime = new Date(b.start?.dateTime || b.start?.date);
+        return aTime - bTime;
+      });
+      
+      res.json({ 
+        events: allEvents, 
+        accounts: accountsToFetch,
+        timeMin, 
+        timeMax 
+      });
+    } catch (error) {
+      console.error('Error getting aggregated calendar events:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============= TASKS API (legacy compatibility) =============
 
   app.get('/api/tasks', (req, res) => {
