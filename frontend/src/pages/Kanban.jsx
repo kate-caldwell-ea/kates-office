@@ -1,5 +1,7 @@
 import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { KanbanCardSkeleton } from '../components/Skeleton'
 import {
   Plus,
   MoreHorizontal,
@@ -36,6 +38,15 @@ export default function Kanban() {
   const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [showNewModal, setShowNewModal] = useState(false)
   const [dragging, setDragging] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Check for ?new=1 query param to auto-open new modal
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowNewModal(true)
+      setSearchParams({}, { replace: true }) // Clear the param
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     fetchAssignments()
@@ -108,8 +119,29 @@ export default function Kanban() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Assignments</h1>
+            <p className="text-warm-500 mt-1">Drag and drop to update status</p>
+          </div>
+          <div className="skeleton h-10 w-40 rounded-xl" />
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {columns.map((column) => (
+            <div key={column.id} className={`flex-shrink-0 w-80 rounded-2xl border-2 ${column.color}`}>
+              <div className="p-4 border-b border-cream-200/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{column.emoji}</span>
+                  <div className="skeleton h-5 w-20 rounded" />
+                </div>
+              </div>
+              <div className="p-3 space-y-3">
+                {[...Array(2)].map((_, i) => <KanbanCardSkeleton key={i} />)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -119,7 +151,7 @@ export default function Kanban() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-warm-800">Assignments</h1>
+          <h1 className="page-title">Assignments</h1>
           <p className="text-warm-500 mt-1">Drag and drop to update status</p>
         </div>
         <button

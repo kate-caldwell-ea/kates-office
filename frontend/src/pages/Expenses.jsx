@@ -1,5 +1,7 @@
 import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { CardSkeleton, ListItemSkeleton } from '../components/Skeleton'
 import {
   Plus,
   DollarSign,
@@ -36,6 +38,15 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Check for ?new=1 query param to auto-open new modal
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowNewModal(true)
+      setSearchParams({}, { replace: true }) // Clear the param
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     fetchData()
@@ -80,8 +91,23 @@ export default function Expenses() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Expenses</h1>
+            <p className="text-warm-500 mt-1">Track and manage spending</p>
+          </div>
+          <div className="skeleton h-10 w-36 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+        <div className="card">
+          <div className="skeleton h-6 w-40 mb-4 rounded" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <ListItemSkeleton key={i} />)}
+          </div>
+        </div>
       </div>
     )
   }
@@ -91,7 +117,7 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-warm-800">Expenses</h1>
+          <h1 className="page-title">Expenses</h1>
           <p className="text-warm-500 mt-1">Track and manage spending</p>
         </div>
         <button onClick={() => setShowNewModal(true)} className="btn btn-primary">

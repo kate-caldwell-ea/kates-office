@@ -84,7 +84,7 @@ export default function QAPI() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-warm-800">Quality Assurance</h1>
+        <h1 className="page-title">Quality Assurance</h1>
         <p className="text-warm-500 mt-1">Track incidents and continuous improvement</p>
       </div>
 

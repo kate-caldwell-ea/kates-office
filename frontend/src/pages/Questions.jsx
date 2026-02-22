@@ -126,7 +126,7 @@ export default function Questions() {
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
           <Sparkles className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-2xl font-semibold text-warm-800">Daily Questions</h1>
+        <h1 className="page-title">Daily Questions</h1>
         <p className="text-warm-500 mt-1">
           Kate's 3:30 PM check-ins — answer when you feel like it
         </p>

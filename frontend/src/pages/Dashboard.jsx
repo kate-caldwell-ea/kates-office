@@ -130,7 +130,7 @@ export default function Dashboard() {
       <div className="bg-gradient-to-r from-sage-500 to-sage-600 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Welcome back, Zack! 👋</h1>
+            <h1 className="text-2xl font-semibold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Welcome back, Zack! 👋</h1>
             <p className="mt-1 text-sage-100">Here's what's happening today.</p>
             <p className="mt-4 text-sm text-sage-200 italic max-w-xl">"{quote}"</p>
           </div>
@@ -226,7 +226,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={assignment.id}
-                    className="flex items-center gap-4 p-3 rounded-xl bg-cream-50 hover:bg-cream-100 transition-colors"
+                    className="flex items-center gap-4 p-3 rounded-xl bg-cream-50 hover:bg-cream-100 hover-lift cursor-pointer"
                   >
                     <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm">
                       <TagIcon className="w-5 h-5 text-sage-500" />
@@ -285,37 +285,43 @@ export default function Dashboard() {
         <h2 className="text-lg font-semibold text-warm-800 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Link
-            to="/assignments"
-            className="flex items-center gap-3 p-4 rounded-xl bg-sage-50 hover:bg-sage-100 transition-colors group"
+            to="/assignments?new=1"
+            className="quick-action flex items-center gap-3 p-4 rounded-xl bg-sage-50 hover:bg-sage-100 transition-all group"
           >
-            <div className="w-10 h-10 rounded-lg bg-sage-200 flex items-center justify-center group-hover:bg-sage-300 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-sage-200 flex items-center justify-center group-hover:bg-sage-300 group-hover:scale-110 transition-all">
               <CheckCircle2 className="w-5 h-5 text-sage-700" />
             </div>
-            <span className="font-medium text-sage-700">New Task</span>
+            <div>
+              <span className="font-medium text-sage-700 block">New Task</span>
+              <span className="text-xs text-sage-500">Press N</span>
+            </div>
           </Link>
           <Link
-            to="/expenses"
-            className="flex items-center gap-3 p-4 rounded-xl bg-rose-gold-50 hover:bg-rose-gold-100 transition-colors group"
+            to="/expenses?new=1"
+            className="quick-action flex items-center gap-3 p-4 rounded-xl bg-rose-gold-50 hover:bg-rose-gold-100 transition-all group"
           >
-            <div className="w-10 h-10 rounded-lg bg-rose-gold-200 flex items-center justify-center group-hover:bg-rose-gold-300 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-rose-gold-200 flex items-center justify-center group-hover:bg-rose-gold-300 group-hover:scale-110 transition-all">
               <DollarSign className="w-5 h-5 text-rose-gold-700" />
             </div>
-            <span className="font-medium text-rose-gold-700">Log Expense</span>
+            <div>
+              <span className="font-medium text-rose-gold-700 block">Log Expense</span>
+              <span className="text-xs text-rose-gold-500">Press E</span>
+            </div>
           </Link>
           <Link
             to="/chat"
-            className="flex items-center gap-3 p-4 rounded-xl bg-cream-100 hover:bg-cream-200 transition-colors group"
+            className="quick-action flex items-center gap-3 p-4 rounded-xl bg-cream-100 hover:bg-cream-200 transition-all group"
           >
-            <div className="w-10 h-10 rounded-lg bg-cream-300 flex items-center justify-center group-hover:bg-cream-400 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-cream-300 flex items-center justify-center group-hover:bg-cream-400 group-hover:scale-110 transition-all">
               <MessageSquare className="w-5 h-5 text-warm-700" />
             </div>
             <span className="font-medium text-warm-700">Chat with Kate</span>
           </Link>
           <Link
             to="/qapi"
-            className="flex items-center gap-3 p-4 rounded-xl bg-warm-100 hover:bg-warm-200 transition-colors group"
+            className="quick-action flex items-center gap-3 p-4 rounded-xl bg-warm-100 hover:bg-warm-200 transition-all group"
           >
-            <div className="w-10 h-10 rounded-lg bg-warm-200 flex items-center justify-center group-hover:bg-warm-300 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-warm-200 flex items-center justify-center group-hover:bg-warm-300 group-hover:scale-110 transition-all">
               <TrendingUp className="w-5 h-5 text-warm-700" />
             </div>
             <span className="font-medium text-warm-700">View QAPI</span>
