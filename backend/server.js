@@ -14,6 +14,41 @@ console.log('Starting Kate\'s Office server...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Current directory:', __dirname);
 
+// ============= TELEGRAM CONFIGURATION =============
+// Kate's bot token and target chat for web messages
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8538460545:AAEmkOAdDWduFyHdVre2lJ8-lYW3rsTgU9Q';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6892982410'; // Zack's chat with Kate
+
+// Function to send messages to Telegram
+async function sendToTelegram(text, parseMode = 'HTML') {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: parseMode,
+        disable_web_page_preview: true
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.ok) {
+      console.error('Telegram API error:', result);
+      return { success: false, error: result.description };
+    }
+    
+    console.log('Message sent to Telegram successfully');
+    return { success: true, messageId: result.result.message_id };
+  } catch (error) {
+    console.error('Failed to send to Telegram:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Initialize database
 let db;
 try {
@@ -551,11 +586,12 @@ app.get('/api/chat', (req, res) => {
   res.json(messages);
 });
 
-// Send chat message (stores locally, actual sending to Kate happens via frontend)
-app.post('/api/chat', (req, res) => {
+// Send chat message - NOW WITH TELEGRAM INTEGRATION!
+app.post('/api/chat', async (req, res) => {
   const id = uuidv4();
-  const { role, content, metadata } = req.body;
+  const { role, content, metadata, senderName } = req.body;
   
+  // Store the message locally
   db.prepare(`
     INSERT INTO chat_messages (id, role, content, metadata)
     VALUES (?, ?, ?, ?)
@@ -563,6 +599,21 @@ app.post('/api/chat', (req, res) => {
   
   const message = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id);
   message.metadata = message.metadata ? JSON.parse(message.metadata) : null;
+  
+  // If it's a user message, forward to Kate via Telegram
+  if (role === 'user') {
+    const displayName = senderName || 'Website Visitor';
+    const telegramMessage = `📬 <b>Kate's Office - Web Chat</b>\n\nFrom: ${displayName}\n\n${content}\n\n<i>Reply here and I'll see it. (Web responses coming soon!)</i>`;
+    
+    const telegramResult = await sendToTelegram(telegramMessage);
+    
+    // Update message metadata with telegram status
+    message.telegramSent = telegramResult.success;
+    if (!telegramResult.success) {
+      message.telegramError = telegramResult.error;
+      console.error('Failed to forward to Telegram:', telegramResult.error);
+    }
+  }
   
   broadcast('chat_message', message);
   res.status(201).json(message);
@@ -719,135 +770,92 @@ app.delete('/api/notes/:id', (req, res) => {
   res.status(204).send();
 });
 
-// ============= CALENDAR API =============
-
-// Try to load calendar module (will fail gracefully if tokens not available)
-let calendar;
-try {
-  calendar = require('./calendar');
-  console.log('Calendar module loaded successfully');
-  console.log('Available accounts:', calendar.getAvailableAccounts());
-} catch (error) {
-  console.log('Calendar module not available:', error.message);
-}
-
-// Get available calendar accounts
-app.get('/api/calendar/accounts', async (req, res) => {
-  if (!calendar) {
-    return res.json({ accounts: [], error: 'Calendar not configured' });
-  }
-  
-  try {
-    const accounts = calendar.getAvailableAccounts();
-    res.json({ accounts });
-  } catch (error) {
-    console.error('Error getting calendar accounts:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get calendars for an account
-app.get('/api/calendar/:account/calendars', async (req, res) => {
-  if (!calendar) {
-    return res.status(503).json({ error: 'Calendar not configured' });
-  }
-  
-  try {
-    const calendars = await calendar.getCalendarList(req.params.account);
-    res.json({ calendars });
-  } catch (error) {
-    console.error('Error getting calendar list:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get events from all calendars for an account
-app.get('/api/calendar/:account/events', async (req, res) => {
-  if (!calendar) {
-    return res.status(503).json({ error: 'Calendar not configured' });
-  }
-  
-  try {
-    const { days = 7 } = req.query;
-    const daysNum = parseInt(days) || 7;
-    
-    const timeMin = new Date().toISOString();
-    const timeMax = new Date(Date.now() + daysNum * 24 * 60 * 60 * 1000).toISOString();
-    
-    const events = await calendar.getAllEventsForAccount(req.params.account, {
-      timeMin,
-      timeMax
-    });
-    
-    res.json({ events, timeMin, timeMax });
-  } catch (error) {
-    console.error('Error getting calendar events:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get aggregated events from multiple accounts
-app.get('/api/calendar/events', async (req, res) => {
-  if (!calendar) {
-    return res.status(503).json({ error: 'Calendar not configured' });
-  }
-  
-  try {
-    const { accounts: accountsQuery, days = 7 } = req.query;
-    const daysNum = parseInt(days) || 7;
-    
-    // Default to zack-gosolvr if no accounts specified
-    const requestedAccounts = accountsQuery 
-      ? accountsQuery.split(',') 
-      : ['zack-gosolvr'];
-    
-    const availableAccounts = calendar.getAvailableAccounts();
-    const accountsToFetch = requestedAccounts.filter(a => availableAccounts.includes(a));
-    
-    if (accountsToFetch.length === 0) {
-      return res.json({ events: [], error: 'No valid accounts specified' });
-    }
-    
-    const timeMin = new Date().toISOString();
-    const timeMax = new Date(Date.now() + daysNum * 24 * 60 * 60 * 1000).toISOString();
-    
-    const allEvents = [];
-    
-    for (const account of accountsToFetch) {
-      try {
-        const events = await calendar.getAllEventsForAccount(account, {
-          timeMin,
-          timeMax
-        });
-        allEvents.push(...events);
-      } catch (error) {
-        console.error(`Error fetching events for ${account}:`, error.message);
-      }
-    }
-    
-    // Sort all events by start time
-    allEvents.sort((a, b) => {
-      const aTime = new Date(a.start?.dateTime || a.start?.date);
-      const bTime = new Date(b.start?.dateTime || b.start?.date);
-      return aTime - bTime;
-    });
-    
-    res.json({ 
-      events: allEvents, 
-      accounts: accountsToFetch,
-      timeMin, 
-      timeMax 
-    });
-  } catch (error) {
-    console.error('Error getting aggregated calendar events:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ============= HEALTH CHECK =============
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    features: {
+      telegram: !!TELEGRAM_BOT_TOKEN,
+      chatId: TELEGRAM_CHAT_ID ? 'configured' : 'not configured'
+    }
+  });
+});
+
+// ============= TELEGRAM STATUS =============
+app.get('/api/chat/status', (req, res) => {
+  res.json({
+    telegramEnabled: !!TELEGRAM_BOT_TOKEN,
+    chatIdConfigured: !!TELEGRAM_CHAT_ID,
+    note: 'Messages sent here are forwarded to Kate via Telegram. Responses will appear in Telegram.'
+  });
+});
+
+// Simplified chat send endpoint (for frontend compatibility)
+app.post('/api/chat/send', async (req, res) => {
+  const { content, senderName } = req.body;
+  
+  if (!content || !content.trim()) {
+    return res.status(400).json({ success: false, error: 'Message content is required' });
+  }
+  
+  const id = uuidv4();
+  
+  // Store the user message
+  db.prepare(`
+    INSERT INTO chat_messages (id, role, content, metadata)
+    VALUES (?, ?, ?, ?)
+  `).run(id, 'user', content, JSON.stringify({ source: 'web', senderName }));
+  
+  const message = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id);
+  message.metadata = message.metadata ? JSON.parse(message.metadata) : null;
+  
+  // Forward to Telegram
+  const displayName = senderName || 'Website Visitor';
+  const telegramMessage = `📬 <b>Kate's Office - Web Chat</b>\n\nFrom: ${displayName}\n\n${content}\n\n<i>Reply here and I'll see it. (Web responses coming soon!)</i>`;
+  
+  const telegramResult = await sendToTelegram(telegramMessage);
+  
+  // Broadcast to connected clients
+  broadcast('chat_message', message);
+  
+  // Log activity
+  logActivity('chat_message_sent', `Web message from ${displayName}`, 'chat', id);
+  
+  if (telegramResult.success) {
+    // Add confirmation message
+    const confirmId = uuidv4();
+    const confirmContent = `✅ Message forwarded to Kate via Telegram! I'll respond there, and responses will show here soon.`;
+    
+    db.prepare(`
+      INSERT INTO chat_messages (id, role, content, metadata)
+      VALUES (?, ?, ?, ?)
+    `).run(confirmId, 'assistant', confirmContent, JSON.stringify({ type: 'system_confirm', telegramMessageId: telegramResult.messageId }));
+    
+    const confirmMessage = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(confirmId);
+    confirmMessage.metadata = confirmMessage.metadata ? JSON.parse(confirmMessage.metadata) : null;
+    
+    broadcast('chat_message', confirmMessage);
+    
+    res.json({ success: true, messageId: id, telegramSent: true });
+  } else {
+    // Add error message
+    const errorId = uuidv4();
+    const errorContent = `⚠️ Couldn't reach Telegram right now. Your message was saved and will be retried later.`;
+    
+    db.prepare(`
+      INSERT INTO chat_messages (id, role, content, metadata)
+      VALUES (?, ?, ?, ?)
+    `).run(errorId, 'system', errorContent, JSON.stringify({ type: 'system_error', error: telegramResult.error }));
+    
+    const errorMessage = db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(errorId);
+    errorMessage.metadata = errorMessage.metadata ? JSON.parse(errorMessage.metadata) : null;
+    
+    broadcast('chat_message', errorMessage);
+    
+    res.json({ success: true, messageId: id, telegramSent: false, error: telegramResult.error });
+  }
 });
 
 // Catch-all for SPA routing
@@ -858,5 +866,7 @@ app.get('*', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🏠 Kate's Office server running on port ${PORT}\n`);
+  console.log(`\n🏠 Kate's Office server running on port ${PORT}`);
+  console.log(`📬 Telegram integration: ${TELEGRAM_BOT_TOKEN ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`💬 Target chat ID: ${TELEGRAM_CHAT_ID}\n`);
 });
