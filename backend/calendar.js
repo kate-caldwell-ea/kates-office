@@ -1,6 +1,10 @@
 /**
  * Google Calendar API integration for Kate's Office
  * Fetches events from Zack's calendars using OAuth tokens
+ * 
+ * Token sources (in order of precedence):
+ * 1. Environment variables: GOOGLE_OAUTH_<ACCOUNT>_JSON (e.g., GOOGLE_OAUTH_ZACK_GOSOLVR_JSON)
+ * 2. Token directory files: /data/workspace/config/google-oauth-<account>.json
  */
 
 const fs = require('fs');
@@ -13,27 +17,69 @@ const TOKEN_DIR = process.env.GOOGLE_TOKEN_DIR || '/data/workspace/config';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
+// In-memory token cache (for env var-based tokens that can't be written to disk)
+const tokenCache = {};
+
 /**
- * Load OAuth tokens from file
+ * Convert account name to env var format
+ * e.g., "zack-gosolvr" -> "ZACK_GOSOLVR"
+ */
+function accountToEnvKey(account) {
+  return account.toUpperCase().replace(/-/g, '_');
+}
+
+/**
+ * Load OAuth tokens from environment variable or file
  */
 function loadTokens(account) {
+  // Check for in-memory cache first (for refreshed tokens)
+  if (tokenCache[account]) {
+    return tokenCache[account];
+  }
+  
+  // Try environment variable first
+  const envKey = `GOOGLE_OAUTH_${accountToEnvKey(account)}_JSON`;
+  if (process.env[envKey]) {
+    try {
+      const tokens = JSON.parse(process.env[envKey]);
+      tokenCache[account] = tokens;
+      console.log(`Loaded tokens for ${account} from environment variable`);
+      return tokens;
+    } catch (e) {
+      console.error(`Failed to parse ${envKey}:`, e.message);
+    }
+  }
+  
+  // Fall back to file
   const filename = `google-oauth-${account}.json`;
   const filepath = path.join(TOKEN_DIR, filename);
   
   if (!fs.existsSync(filepath)) {
-    throw new Error(`Token file not found: ${filepath}`);
+    throw new Error(`Token file not found: ${filepath} (and no ${envKey} env var set)`);
   }
   
   return JSON.parse(fs.readFileSync(filepath, 'utf8'));
 }
 
 /**
- * Save updated tokens to file
+ * Save updated tokens to file or cache
  */
 function saveTokens(account, tokens) {
+  // Update in-memory cache
+  tokenCache[account] = tokens;
+  
+  // Try to save to file if directory is writable
   const filename = `google-oauth-${account}.json`;
   const filepath = path.join(TOKEN_DIR, filename);
-  fs.writeFileSync(filepath, JSON.stringify(tokens, null, 2));
+  
+  try {
+    if (fs.existsSync(TOKEN_DIR)) {
+      fs.writeFileSync(filepath, JSON.stringify(tokens, null, 2));
+      console.log(`Saved refreshed tokens for ${account} to file`);
+    }
+  } catch (e) {
+    console.log(`Could not save tokens to file (using in-memory cache): ${e.message}`);
+  }
 }
 
 /**
@@ -170,20 +216,37 @@ async function getAllEventsForAccount(account, options = {}) {
 }
 
 /**
- * Get available accounts
+ * Get available accounts (from env vars and files)
  */
 function getAvailableAccounts() {
-  const accounts = [];
-  const files = fs.readdirSync(TOKEN_DIR);
+  const accounts = new Set();
   
-  for (const file of files) {
-    const match = file.match(/^google-oauth-(.+)\.json$/);
+  // Check environment variables
+  for (const key of Object.keys(process.env)) {
+    const match = key.match(/^GOOGLE_OAUTH_(.+)_JSON$/);
     if (match) {
-      accounts.push(match[1]);
+      // Convert env key back to account format: ZACK_GOSOLVR -> zack-gosolvr
+      const account = match[1].toLowerCase().replace(/_/g, '-');
+      accounts.add(account);
     }
   }
   
-  return accounts;
+  // Check files in token directory
+  try {
+    if (fs.existsSync(TOKEN_DIR)) {
+      const files = fs.readdirSync(TOKEN_DIR);
+      for (const file of files) {
+        const match = file.match(/^google-oauth-(.+)\.json$/);
+        if (match) {
+          accounts.add(match[1]);
+        }
+      }
+    }
+  } catch (e) {
+    console.log(`Could not read token directory: ${e.message}`);
+  }
+  
+  return Array.from(accounts);
 }
 
 module.exports = {
