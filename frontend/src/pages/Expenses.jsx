@@ -1,7 +1,5 @@
 import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { CardSkeleton, ListItemSkeleton } from '../components/Skeleton'
 import {
   Plus,
   DollarSign,
@@ -15,38 +13,59 @@ import {
   Plane,
   CreditCard,
   Bot,
+  Download,
+  Target,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
 } from 'lucide-react'
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 
 
 const categoryIcons = {
   gifts: Gift,
   travel: Plane,
-  api_tokens: Bot,
+  ai_services: Bot,
   default: DollarSign,
 }
 
 const categoryColors = {
   gifts: 'bg-rose-gold-100 text-rose-gold-700',
   travel: 'bg-sage-100 text-sage-700',
-  api_tokens: 'bg-purple-100 text-purple-700',
+  ai_services: 'bg-purple-100 text-purple-700',
+  dining: 'bg-amber-100 text-amber-700',
+  subscriptions: 'bg-blue-100 text-blue-700',
+  household: 'bg-teal-100 text-teal-700',
+  health: 'bg-red-100 text-red-700',
   default: 'bg-cream-200 text-warm-600',
 }
+
+const CHART_COLORS = ['#7c9885', '#c9a86c', '#9a7ea1', '#6b9dad', '#d4a574', '#8fa876']
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([])
   const [summary, setSummary] = useState({ total: 0, byCategory: [] })
+  const [budgets, setBudgets] = useState([])
+  const [budgetStatus, setBudgetStatus] = useState([])
+  const [trends, setTrends] = useState({ trends: [], byCategory: [] })
   const [loading, setLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // Check for ?new=1 query param to auto-open new modal
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setShowNewModal(true)
-      setSearchParams({}, { replace: true }) // Clear the param
-    }
-  }, [searchParams, setSearchParams])
+  const [showBudgetModal, setShowBudgetModal] = useState(false)
+  const [editingBudget, setEditingBudget] = useState(null)
+  const [showTrends, setShowTrends] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -54,16 +73,25 @@ export default function Expenses() {
 
   const fetchData = async () => {
     try {
-      const [expensesRes, summaryRes] = await Promise.all([
+      const [expensesRes, summaryRes, budgetsRes, budgetStatusRes, trendsRes] = await Promise.all([
         fetch(`${API_URL}/expenses`),
-        fetch(`${API_URL}/expenses/summary`)
+        fetch(`${API_URL}/expenses/summary`),
+        fetch(`${API_URL}/budgets`),
+        fetch(`${API_URL}/budgets/status`),
+        fetch(`${API_URL}/expenses/trends?days=30`)
       ])
-      const [expensesData, summaryData] = await Promise.all([
+      const [expensesData, summaryData, budgetsData, budgetStatusData, trendsData] = await Promise.all([
         expensesRes.json(),
-        summaryRes.json()
+        summaryRes.json(),
+        budgetsRes.json(),
+        budgetStatusRes.json(),
+        trendsRes.json()
       ])
       setExpenses(expensesData)
       setSummary(summaryData)
+      setBudgets(budgetsData)
+      setBudgetStatus(budgetStatusData)
+      setTrends(trendsData)
     } catch (err) {
       console.error('Failed to fetch expenses:', err)
     } finally {
@@ -81,6 +109,20 @@ export default function Expenses() {
     }
   }
 
+  const handleDeleteBudget = async (id) => {
+    if (!confirm('Delete this budget?')) return
+    try {
+      await fetch(`${API_URL}/budgets/${id}`, { method: 'DELETE' })
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete:', err)
+    }
+  }
+
+  const handleExport = () => {
+    window.open(`${API_URL}/expenses/export?format=csv`, '_blank')
+  }
+
   const getIcon = (category) => {
     return categoryIcons[category] || categoryIcons.default
   }
@@ -89,25 +131,18 @@ export default function Expenses() {
     return categoryColors[category] || categoryColors.default
   }
 
+  const getBudgetColor = (status) => {
+    switch (status) {
+      case 'exceeded': return 'bg-red-500'
+      case 'warning': return 'bg-amber-500'
+      default: return 'bg-sage-500'
+    }
+  }
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="page-title">Expenses</h1>
-            <p className="text-warm-500 mt-1">Track and manage spending</p>
-          </div>
-          <div className="skeleton h-10 w-36 rounded-xl" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
-        </div>
-        <div className="card">
-          <div className="skeleton h-6 w-40 mb-4 rounded" />
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => <ListItemSkeleton key={i} />)}
-          </div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -115,27 +150,43 @@ export default function Expenses() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Expenses</h1>
-          <p className="text-warm-500 mt-1">Track and manage spending</p>
+          <h1 className="text-2xl font-semibold text-warm-800">Expenses</h1>
+          <p className="text-warm-500 mt-1">Track spending and manage budgets</p>
         </div>
-        <button onClick={() => setShowNewModal(true)} className="btn btn-primary">
-          <Plus className="w-5 h-5" />
-          Log Expense
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={handleExport} 
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export CSV</span>
+          </button>
+          <button 
+            onClick={() => setShowBudgetModal(true)} 
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <Target className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Budget</span>
+          </button>
+          <button onClick={() => setShowNewModal(true)} className="btn btn-primary flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            Log Expense
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card bg-gradient-to-br from-sage-500 to-sage-600 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sage-100 text-sm">Total Spent</p>
-              <p className="text-3xl font-bold mt-1">${summary.total.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">${summary.total.toFixed(0)}</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <DollarSign className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </div>
@@ -146,8 +197,8 @@ export default function Expenses() {
               <p className="text-warm-500 text-sm">Transactions</p>
               <p className="text-2xl font-semibold text-warm-800">{expenses.length}</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-cream-100 flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-warm-500" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cream-100 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-warm-500" />
             </div>
           </div>
         </div>
@@ -160,11 +211,190 @@ export default function Expenses() {
                 {summary.byCategory?.length || 0}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-rose-gold-100 flex items-center justify-center">
-              <Tag className="w-6 h-6 text-rose-gold-500" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-gold-100 flex items-center justify-center">
+              <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-rose-gold-500" />
             </div>
           </div>
         </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-warm-500 text-sm">Budgets</p>
+              <p className="text-2xl font-semibold text-warm-800">{budgets.length}</p>
+            </div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Target className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Budget Status */}
+      {budgetStatus.length > 0 && (
+        <div className="card">
+          <h2 className="font-semibold text-warm-800 mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-sage-500" />
+            Budget Progress
+          </h2>
+          <div className="space-y-4">
+            {budgetStatus.map((budget) => (
+              <div key={budget.id} className="group">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-warm-700">{budget.name}</span>
+                    {budget.status === 'exceeded' && (
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                    )}
+                    {budget.status === 'warning' && (
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-warm-600">
+                      ${budget.spent.toFixed(0)} / ${budget.amount.toFixed(0)}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      budget.status === 'exceeded' 
+                        ? 'bg-red-100 text-red-700' 
+                        : budget.status === 'warning'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-sage-100 text-sage-700'
+                    }`}>
+                      {budget.percentage}%
+                    </span>
+                    <button
+                      onClick={() => setEditingBudget(budget)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-cream-100 rounded"
+                    >
+                      <Edit3 className="w-3 h-3 text-warm-400" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBudget(budget.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-400" />
+                    </button>
+                  </div>
+                </div>
+                <div className="h-3 bg-cream-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${getBudgetColor(budget.status)}`}
+                    style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                  />
+                </div>
+                {budget.status !== 'ok' && (
+                  <p className="text-xs text-warm-500 mt-1">
+                    {budget.status === 'exceeded' 
+                      ? `Over budget by $${Math.abs(budget.remaining).toFixed(0)}`
+                      : `$${budget.remaining.toFixed(0)} remaining`
+                    }
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trends Section */}
+      <div className="card">
+        <button
+          onClick={() => setShowTrends(!showTrends)}
+          className="w-full flex items-center justify-between mb-4"
+        >
+          <h2 className="font-semibold text-warm-800 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-sage-500" />
+            Spending Trends
+          </h2>
+          {showTrends ? <ChevronUp className="w-5 h-5 text-warm-400" /> : <ChevronDown className="w-5 h-5 text-warm-400" />}
+        </button>
+        
+        {showTrends && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Daily Spending Chart */}
+            {trends.trends?.length > 0 && (
+              <div>
+                <h3 className="text-sm text-warm-500 mb-3">Daily Spending (Last 30 Days)</h3>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trends.trends}>
+                      <defs>
+                        <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#7c9885" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#7c9885" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e0d8" />
+                      <XAxis 
+                        dataKey="period" 
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(val) => val.slice(-5)}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(val) => `$${val}`}
+                      />
+                      <Tooltip 
+                        formatter={(value) => [`$${value.toFixed(2)}`, 'Spent']}
+                        labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="total" 
+                        stroke="#7c9885" 
+                        fillOpacity={1} 
+                        fill="url(#colorSpend)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Category Pie Chart */}
+            {trends.byCategory?.length > 0 && (
+              <div>
+                <h3 className="text-sm text-warm-500 mb-3">By Category</h3>
+                <div className="h-48 flex items-center">
+                  <div className="w-1/2 h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={trends.byCategory}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={2}
+                          dataKey="total"
+                          nameKey="category"
+                        >
+                          {trends.byCategory.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-1/2 space-y-1">
+                    {trends.byCategory.slice(0, 5).map((cat, i) => (
+                      <div key={cat.category} className="flex items-center gap-2 text-xs">
+                        <div 
+                          className="w-3 h-3 rounded-sm" 
+                          style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                        />
+                        <span className="text-warm-600 capitalize truncate">{cat.category || 'other'}</span>
+                        <span className="text-warm-400 ml-auto">${cat.total.toFixed(0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Category Breakdown */}
@@ -203,26 +433,29 @@ export default function Expenses() {
 
       {/* Expenses List */}
       <div className="card">
-        <h2 className="font-semibold text-warm-800 mb-4">Recent Expenses</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-warm-800">Recent Expenses</h2>
+          <span className="text-sm text-warm-400">{expenses.length} total</span>
+        </div>
         <div className="space-y-3">
           {expenses.length === 0 ? (
             <p className="text-warm-400 text-center py-8">No expenses logged yet</p>
           ) : (
-            expenses.map((expense) => {
+            expenses.slice(0, 20).map((expense) => {
               const Icon = getIcon(expense.category)
               return (
                 <div
                   key={expense.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-cream-50 hover:bg-cream-100 transition-colors group"
+                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-cream-50 hover:bg-cream-100 transition-colors group"
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getColor(expense.category)}`}>
-                    <Icon className="w-6 h-6" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${getColor(expense.category)}`}>
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-warm-800 truncate">{expense.description}</p>
                       {expense.category && (
-                        <span className="badge badge-cream text-xs">{expense.category}</span>
+                        <span className="hidden sm:inline badge badge-cream text-xs">{expense.category}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-warm-500 mt-1">
@@ -231,19 +464,16 @@ export default function Expenses() {
                         {new Date(expense.date).toLocaleDateString()}
                       </span>
                       {expense.vendor && (
-                        <span className="truncate">{expense.vendor}</span>
+                        <span className="hidden sm:block truncate">{expense.vendor}</span>
                       )}
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-warm-800">
+                    <p className="text-base sm:text-lg font-semibold text-warm-800">
                       ${expense.amount.toFixed(2)}
                     </p>
-                    {expense.payment_method && (
-                      <p className="text-xs text-warm-400">{expense.payment_method}</p>
-                    )}
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                  <div className="hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity items-center gap-1">
                     <button
                       onClick={() => setEditingExpense(expense)}
                       className="p-2 rounded-lg hover:bg-cream-200 text-warm-500"
@@ -264,13 +494,25 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* New/Edit Modal */}
+      {/* New/Edit Expense Modal */}
       {(showNewModal || editingExpense) && (
         <ExpenseModal
           expense={editingExpense}
           onClose={() => {
             setShowNewModal(false)
             setEditingExpense(null)
+          }}
+          onSaved={fetchData}
+        />
+      )}
+
+      {/* Budget Modal */}
+      {(showBudgetModal || editingBudget) && (
+        <BudgetModal
+          budget={editingBudget}
+          onClose={() => {
+            setShowBudgetModal(false)
+            setEditingBudget(null)
           }}
           onSaved={fetchData}
         />
@@ -319,8 +561,8 @@ function ExpenseModal({ expense, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-warm-800">
             {expense ? 'Edit Expense' : 'Log Expense'}
@@ -383,7 +625,7 @@ function ExpenseModal({ expense, onClose, onSaved }) {
               <option value="subscriptions">📦 Subscriptions</option>
               <option value="household">🏠 Household</option>
               <option value="health">💊 Health</option>
-              <option value="api_tokens">🤖 API/Tokens</option>
+              <option value="ai_services">🤖 AI Services</option>
               <option value="other">📋 Other</option>
             </select>
           </div>
@@ -418,6 +660,148 @@ function ExpenseModal({ expense, onClose, onSaved }) {
               className="btn btn-primary flex-1"
             >
               {expense ? 'Save Changes' : 'Log Expense'}
+            </button>
+            <button onClick={onClose} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BudgetModal({ budget, onClose, onSaved }) {
+  const [name, setName] = useState(budget?.name || '')
+  const [amount, setAmount] = useState(budget?.amount?.toString() || '')
+  const [category, setCategory] = useState(budget?.category || '')
+  const [period, setPeriod] = useState(budget?.period || 'monthly')
+  const [alertThreshold, setAlertThreshold] = useState(budget?.alert_threshold?.toString() || '0.8')
+  const [loading, setLoading] = useState(false)
+
+  const handleSave = async () => {
+    if (!name.trim() || !amount) return
+    setLoading(true)
+    try {
+      const method = budget ? 'PATCH' : 'POST'
+      const url = budget 
+        ? `${API_URL}/budgets/${budget.id}` 
+        : `${API_URL}/budgets`
+      
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          amount: parseFloat(amount),
+          category: category || null,
+          period,
+          alert_threshold: parseFloat(alertThreshold),
+        })
+      })
+      onSaved()
+      onClose()
+    } catch (err) {
+      console.error('Failed to save:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-warm-800">
+            {budget ? 'Edit Budget' : 'Create Budget'}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-cream-100 text-warm-500">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-warm-500 mb-1">Budget Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input"
+              placeholder="e.g., Monthly Dining"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-warm-500 mb-1">Amount *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400">$</span>
+                <input
+                  type="number"
+                  step="1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="input pl-7"
+                  placeholder="500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-warm-500 mb-1">Period</label>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="input"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-warm-500 mb-1">Category (optional)</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="input"
+            >
+              <option value="">All expenses</option>
+              <option value="gifts">🎁 Gifts</option>
+              <option value="travel">✈️ Travel</option>
+              <option value="dining">🍽️ Dining</option>
+              <option value="subscriptions">📦 Subscriptions</option>
+              <option value="household">🏠 Household</option>
+              <option value="health">💊 Health</option>
+              <option value="ai_services">🤖 AI Services</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-warm-500 mb-1">
+              Alert at ({Math.round(parseFloat(alertThreshold || 0.8) * 100)}% of budget)
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="1"
+              step="0.05"
+              value={alertThreshold}
+              onChange={(e) => setAlertThreshold(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <button
+              onClick={handleSave}
+              disabled={loading || !name.trim() || !amount}
+              className="btn btn-primary flex-1"
+            >
+              {budget ? 'Save Changes' : 'Create Budget'}
             </button>
             <button onClick={onClose} className="btn btn-secondary">
               Cancel

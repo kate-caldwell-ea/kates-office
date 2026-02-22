@@ -61,6 +61,7 @@ const getTimeUntil = (dateStr) => {
 export default function CronJobs() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [filter, setFilter] = useState('all')
   const [lastSync, setLastSync] = useState(null)
 
@@ -80,6 +81,22 @@ export default function CronJobs() {
       console.error('Failed to fetch cron jobs:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const syncFromOpenClaw = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch(`${API_URL}/cron/sync`, { method: 'POST' })
+      const data = await res.json()
+      if (data.synced) {
+        setJobs(data.jobs || [])
+        setLastSync(new Date().toISOString())
+      }
+    } catch (err) {
+      console.error('Failed to sync cron jobs:', err)
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -123,8 +140,18 @@ export default function CronJobs() {
             </span>
           )}
           <button
+            onClick={syncFromOpenClaw}
+            disabled={syncing}
+            className="px-3 py-2 rounded-lg bg-sage-500 text-white text-sm font-medium hover:bg-sage-600 disabled:opacity-50 flex items-center gap-2"
+            title="Sync from OpenClaw"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync'}
+          </button>
+          <button
             onClick={fetchJobs}
             className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
+            title="Refresh list"
           >
             <RefreshCw className="w-5 h-5" />
           </button>

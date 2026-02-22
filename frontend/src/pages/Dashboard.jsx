@@ -7,15 +7,14 @@ import {
   AlertCircle,
   DollarSign,
   TrendingUp,
-  Calendar,
-  Gift,
-  Plane,
   MessageSquare,
   ArrowRight,
   Sparkles,
+  Mic,
 } from 'lucide-react'
-import useStore from '../store/useStore'
-
+import WeatherWidget from '../components/WeatherWidget'
+import CalendarWidget, { BirthdayWidget, TripCountdown } from '../components/CalendarWidget'
+import BriefingCard from '../components/BriefingCard'
 
 // Office quotes
 const quotes = [
@@ -23,6 +22,8 @@ const quotes = [
   "Well done is better than well said. — Benjamin Franklin",
   "Simplicity is the ultimate sophistication. — Leonardo da Vinci",
   "Do one thing every day that scares you. — Eleanor Roosevelt",
+  "The only way to do great work is to love what you do. — Steve Jobs",
+  "Excellence is not a destination but a continuous journey. — Brian Tracy",
 ]
 
 export default function Dashboard() {
@@ -118,12 +119,6 @@ export default function Dashboard() {
     }
   }
 
-  const getTagIcon = (tag) => {
-    if (tag.includes('gift') || tag.includes('birthday')) return Gift
-    if (tag.includes('travel')) return Plane
-    return Calendar
-  }
-
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -141,9 +136,20 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Top Row: Briefing + Weather + Trip Countdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <BriefingCard />
+        </div>
+        <div className="space-y-4">
+          <WeatherWidget />
+          <TripCountdown />
+        </div>
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Link to="/assignments" className="card hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-warm-500">Inbox</p>
@@ -154,11 +160,11 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="mt-2 text-xs text-warm-400">
-            {stats.assignments.inProgress} in progress, {stats.assignments.waiting} waiting
+            {stats.assignments.inProgress} in progress
           </p>
-        </div>
+        </Link>
 
-        <div className="card">
+        <Link to="/assignments" className="card hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-warm-500">Completed</p>
@@ -169,24 +175,24 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="mt-2 text-xs text-warm-400">Great progress!</p>
-        </div>
+        </Link>
 
-        <div className="card">
+        <Link to="/expenses" className="card hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-warm-500">Expenses (MTD)</p>
               <p className="text-2xl font-semibold text-rose-gold-600">
-                ${stats.expenses.thisMonth.toFixed(2)}
+                ${stats.expenses.thisMonth.toFixed(0)}
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-rose-gold-100 flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-rose-gold-500" />
             </div>
           </div>
-          <p className="mt-2 text-xs text-warm-400">Tracked and organized</p>
-        </div>
+          <p className="mt-2 text-xs text-warm-400">View details</p>
+        </Link>
 
-        <div className="card">
+        <Link to="/qapi" className="card hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-warm-500">QAPI Items</p>
@@ -197,39 +203,39 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="mt-2 text-xs text-warm-400">
-            {stats.qapi.resolved} resolved this month
+            {stats.qapi.resolved} resolved
           </p>
-        </div>
+        </Link>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upcoming Assignments */}
-        <div className="lg:col-span-2 card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-warm-800">Upcoming</h2>
-            <Link 
-              to="/assignments" 
-              className="text-sm text-sage-600 hover:text-sage-700 flex items-center gap-1"
-            >
-              View all <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {upcomingAssignments.length === 0 ? (
-              <p className="text-warm-400 text-sm py-4 text-center">
-                No upcoming deadlines. Inbox is clear! 🎉
-              </p>
-            ) : (
-              upcomingAssignments.map((assignment) => {
-                const TagIcon = assignment.tags?.[0] ? getTagIcon(assignment.tags[0]) : Calendar
-                return (
+        {/* Upcoming & Calendar */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Upcoming Assignments */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-warm-800">Due Soon</h2>
+              <Link 
+                to="/assignments" 
+                className="text-sm text-sage-600 hover:text-sage-700 flex items-center gap-1"
+              >
+                View all <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {upcomingAssignments.length === 0 ? (
+                <p className="text-warm-400 text-sm py-4 text-center">
+                  No upcoming deadlines. Inbox is clear! 🎉
+                </p>
+              ) : (
+                upcomingAssignments.map((assignment) => (
                   <div
                     key={assignment.id}
                     className="flex items-center gap-4 p-3 rounded-xl bg-cream-50 hover:bg-cream-100 hover-lift cursor-pointer"
                   >
                     <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                      <TagIcon className="w-5 h-5 text-sage-500" />
+                      <CheckCircle2 className="w-5 h-5 text-sage-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-warm-800 truncate">{assignment.title}</p>
@@ -244,38 +250,47 @@ export default function Dashboard() {
                       <p className="text-xs text-warm-400 capitalize">{assignment.priority}</p>
                     </div>
                   </div>
-                )
-              })
-            )}
+                ))
+              )}
+            </div>
           </div>
+
+          {/* Calendar Events */}
+          <CalendarWidget />
         </div>
 
-        {/* Recent Activity */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-warm-800 mb-4">Recent Activity</h2>
-          <div className="space-y-4">
-            {recentActivity.length === 0 ? (
-              <p className="text-warm-400 text-sm text-center py-4">
-                No recent activity yet
-              </p>
-            ) : (
-              recentActivity.map((activity) => {
-                const Icon = getActivityIcon(activity.type)
-                return (
-                  <div key={activity.id} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-cream-100 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-warm-500" />
+        {/* Right Sidebar */}
+        <div className="space-y-4">
+          {/* Birthdays */}
+          <BirthdayWidget />
+          
+          {/* Recent Activity */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-warm-800 mb-4">Recent Activity</h2>
+            <div className="space-y-4">
+              {recentActivity.length === 0 ? (
+                <p className="text-warm-400 text-sm text-center py-4">
+                  No recent activity yet
+                </p>
+              ) : (
+                recentActivity.map((activity) => {
+                  const Icon = getActivityIcon(activity.type)
+                  return (
+                    <div key={activity.id} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-cream-100 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 text-warm-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-warm-700 truncate">{activity.description}</p>
+                        <p className="text-xs text-warm-400 mt-0.5">
+                          {new Date(activity.created_at).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-warm-700 truncate">{activity.description}</p>
-                      <p className="text-xs text-warm-400 mt-0.5">
-                        {new Date(activity.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })
-            )}
+                  )
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -283,7 +298,7 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="card">
         <h2 className="text-lg font-semibold text-warm-800 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Link
             to="/assignments?new=1"
             className="quick-action flex items-center gap-3 p-4 rounded-xl bg-sage-50 hover:bg-sage-100 transition-all group"
@@ -325,6 +340,15 @@ export default function Dashboard() {
               <TrendingUp className="w-5 h-5 text-warm-700" />
             </div>
             <span className="font-medium text-warm-700">View QAPI</span>
+          </Link>
+          <Link
+            to="/questions"
+            className="flex items-center gap-3 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-lg bg-purple-200 flex items-center justify-center group-hover:bg-purple-300 transition-colors">
+              <Sparkles className="w-5 h-5 text-purple-700" />
+            </div>
+            <span className="font-medium text-purple-700">Questions</span>
           </Link>
         </div>
       </div>

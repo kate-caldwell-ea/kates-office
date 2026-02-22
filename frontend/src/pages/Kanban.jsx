@@ -1,7 +1,5 @@
 import { API_URL, WS_URL } from '../config.js';
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { KanbanCardSkeleton } from '../components/Skeleton'
 import {
   Plus,
   MoreHorizontal,
@@ -14,6 +12,8 @@ import {
   Check,
   AlertCircle,
   ChevronDown,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react'
 
 
@@ -38,29 +38,35 @@ export default function Kanban() {
   const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [showNewModal, setShowNewModal] = useState(false)
   const [dragging, setDragging] = useState(null)
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // Check for ?new=1 query param to auto-open new modal
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setShowNewModal(true)
-      setSearchParams({}, { replace: true }) // Clear the param
-    }
-  }, [searchParams, setSearchParams])
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     fetchAssignments()
-  }, [])
+  }, [showArchived])
 
   const fetchAssignments = async () => {
     try {
-      const res = await fetch(`${API_URL}/assignments?includeArchived=false`)
+      const res = await fetch(`${API_URL}/assignments?includeArchived=${showArchived}`)
       const data = await res.json()
       setAssignments(data)
     } catch (err) {
       console.error('Failed to fetch assignments:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const toggleArchive = async (assignment) => {
+    try {
+      const newArchived = !assignment.archived
+      await fetch(`${API_URL}/assignments/${assignment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived: newArchived })
+      })
+      fetchAssignments()
+    } catch (err) {
+      console.error('Failed to toggle archive:', err)
     }
   }
 
@@ -119,29 +125,8 @@ export default function Kanban() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="page-title">Assignments</h1>
-            <p className="text-warm-500 mt-1">Drag and drop to update status</p>
-          </div>
-          <div className="skeleton h-10 w-40 rounded-xl" />
-        </div>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((column) => (
-            <div key={column.id} className={`flex-shrink-0 w-80 rounded-2xl border-2 ${column.color}`}>
-              <div className="p-4 border-b border-cream-200/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{column.emoji}</span>
-                  <div className="skeleton h-5 w-20 rounded" />
-                </div>
-              </div>
-              <div className="p-3 space-y-3">
-                {[...Array(2)].map((_, i) => <KanbanCardSkeleton key={i} />)}
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -151,16 +136,29 @@ export default function Kanban() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Assignments</h1>
+          <h1 className="text-2xl font-semibold text-warm-800">Assignments</h1>
           <p className="text-warm-500 mt-1">Drag and drop to update status</p>
         </div>
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="btn btn-primary"
-        >
-          <Plus className="w-5 h-5" />
-          New Assignment
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+              showArchived 
+                ? 'bg-amber-100 text-amber-700 border border-amber-200' 
+                : 'bg-cream-100 text-warm-600 hover:bg-cream-200'
+            }`}
+          >
+            <Archive className="w-4 h-4" />
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
+          </button>
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="btn btn-primary"
+          >
+            <Plus className="w-5 h-5" />
+            New Assignment
+          </button>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -196,16 +194,24 @@ export default function Kanban() {
                   return (
                     <div
                       key={assignment.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, assignment)}
+                      draggable={!assignment.archived}
+                      onDragStart={(e) => !assignment.archived && handleDragStart(e, assignment)}
                       onClick={() => setSelectedAssignment(assignment)}
-                      className={`kanban-card ${dragging?.id === assignment.id ? 'opacity-50' : ''}`}
+                      className={`kanban-card ${dragging?.id === assignment.id ? 'opacity-50' : ''} ${assignment.archived ? 'opacity-60 border-dashed' : ''}`}
                     >
                       {/* Priority Badge */}
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`badge ${priorityColors[assignment.priority]}`}>
-                          {assignment.priority}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`badge ${priorityColors[assignment.priority]}`}>
+                            {assignment.priority}
+                          </span>
+                          {assignment.archived && (
+                            <span className="badge bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
+                              <Archive className="w-3 h-3" />
+                              archived
+                            </span>
+                          )}
+                        </div>
                         {dueInfo && (
                           <span className={`text-xs flex items-center gap-1 ${
                             dueInfo.urgent ? 'text-red-500 font-medium' : 'text-warm-400'
@@ -356,23 +362,51 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
           <div className="flex items-center gap-2">
             <span className={`badge ${priorityColors[priority]}`}>{priority}</span>
             <span className="text-sm text-warm-400 capitalize">{assignment.status.replace('_', ' ')}</span>
+            {assignment.archived && (
+              <span className="badge bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
+                <Archive className="w-3 h-3" />
+                archived
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setEditing(!editing)}
               className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
+              title="Edit"
             >
               <Edit3 className="w-5 h-5" />
             </button>
             <button
+              onClick={async () => {
+                try {
+                  await fetch(`${API_URL}/assignments/${assignment.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ archived: !assignment.archived })
+                  })
+                  onUpdate()
+                  onClose()
+                } catch (err) {
+                  console.error('Failed to toggle archive:', err)
+                }
+              }}
+              className={`p-2 rounded-lg ${assignment.archived ? 'hover:bg-sage-50 text-sage-600' : 'hover:bg-amber-50 text-amber-600'}`}
+              title={assignment.archived ? 'Restore from archive' : 'Archive'}
+            >
+              {assignment.archived ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+            </button>
+            <button
               onClick={handleDelete}
               className="p-2 rounded-lg hover:bg-red-50 text-red-500"
+              title="Delete"
             >
               <Trash2 className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
+              title="Close"
             >
               <X className="w-5 h-5" />
             </button>

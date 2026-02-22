@@ -116,9 +116,33 @@ CREATE TABLE IF NOT EXISTS cron_jobs (
     synced_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Budgets for expense tracking
+CREATE TABLE IF NOT EXISTS budgets (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT, -- null means overall budget
+    amount REAL NOT NULL,
+    period TEXT DEFAULT 'monthly' CHECK(period IN ('monthly', 'yearly', 'weekly')),
+    alert_threshold REAL DEFAULT 0.8, -- Alert at 80% by default
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Voice notes
+CREATE TABLE IF NOT EXISTS voice_notes (
+    id TEXT PRIMARY KEY,
+    transcript TEXT,
+    audio_url TEXT,
+    duration_seconds REAL,
+    action_taken TEXT, -- 'chat', 'assignment', 'none'
+    action_id TEXT, -- ID of created assignment or chat message
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
 CREATE INDEX IF NOT EXISTS idx_token_usage_date ON token_usage(date);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_activity_log_created ON activity_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);

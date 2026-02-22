@@ -247,3 +247,53 @@ body {
 .dragging {
   @apply opacity-50;
 }
+
+/* Mobile-specific styles */
+@media (max-width: 767px) {
+  .card {
+    @apply p-4 rounded-xl;
+  }
+  
+  .btn {
+    @apply px-3 py-2;
+  }
+  
+  /* Safe area for bottom nav */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  /* Touch-friendly targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text selection on mobile nav */
+  nav {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Hide scrollbar on mobile */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Touch highlight color */
+* {
+  -webkit-tap-highlight-color: rgba(124, 152, 133, 0.1);
+}
+
+/* Responsive text */
+.text-responsive {
+  @apply text-sm sm:text-base;
+}
