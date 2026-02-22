@@ -20,7 +20,9 @@ import {
   X,
   Edit3,
   Trash2,
+  Loader2,
 } from 'lucide-react'
+import { API_BASE } from '../config'
 
 // Luxury destination images (Unsplash)
 const destinationImages = {
@@ -629,6 +631,44 @@ export default function TravelPlanner() {
   const [expandedTrip, setExpandedTrip] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [filter, setFilter] = useState('upcoming') // 'upcoming', 'past', 'all'
+  const [loading, setLoading] = useState(true)
+  
+  // Fetch trips from API
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/trips`, { credentials: 'include' })
+        if (response.ok) {
+          const apiTrips = await response.json()
+          if (apiTrips?.length > 0) {
+            // Merge API data with full trip details from initialTrips
+            const mergedTrips = apiTrips.map(apiTrip => {
+              const fullTrip = initialTrips.find(t => t.id === apiTrip.id)
+              return fullTrip ? { ...fullTrip, ...apiTrip } : {
+                ...apiTrip,
+                image: destinationImages[apiTrip.type] || destinationImages.cruise,
+                flights: [],
+                hotels: [],
+                packingList: [
+                  { id: 1, item: 'Passport', checked: false, category: 'Documents' },
+                  { id: 2, item: 'Phone charger', checked: false, category: 'Electronics' },
+                ],
+                tasks: [
+                  { id: 1, task: 'Confirm reservations', done: false },
+                ]
+              }
+            })
+            setTrips(mergedTrips)
+          }
+        }
+      } catch (error) {
+        // Use fallback data on error
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTrips()
+  }, [])
   
   const handleUpdateTrip = (updatedTrip) => {
     setTrips(trips.map(t => t.id === updatedTrip.id ? updatedTrip : t))
@@ -650,6 +690,14 @@ export default function TravelPlanner() {
   // Next trip countdown for header
   const nextTrip = upcomingTrips[0]
   const daysUntilNext = nextTrip ? getDaysUntil(nextTrip.startDate) : null
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-sage-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

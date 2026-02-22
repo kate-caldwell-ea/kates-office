@@ -10,14 +10,19 @@ const Database = require('better-sqlite3');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 
-console.log('Starting Kate\'s Office server...');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Current directory:', __dirname);
+// Production-safe logging - only log in development
+const debug = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+const debugError = console.error.bind(console); // Always log errors
+
+debug('Starting Kate\'s Office server...');
+debug('NODE_ENV:', process.env.NODE_ENV);
+debug('Current directory:', __dirname);
 
 // ============= TELEGRAM CONFIGURATION =============
 // Kate's bot token and target chat for web messages
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8538460545:AAEmkOAdDWduFyHdVre2lJ8-lYW3rsTgU9Q';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6892982410'; // Zack's chat with Kate
+// SECURITY: Must be set via environment variables - no hardcoded fallbacks!
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // Function to send messages to Telegram
 async function sendToTelegram(text, parseMode = 'HTML') {
@@ -37,14 +42,14 @@ async function sendToTelegram(text, parseMode = 'HTML') {
     
     const result = await response.json();
     if (!result.ok) {
-      console.error('Telegram API error:', result);
+      debugError('Telegram API error:', result);
       return { success: false, error: result.description };
     }
     
-    console.log('Message sent to Telegram successfully');
+    debug('Message sent to Telegram successfully');
     return { success: true, messageId: result.result.message_id };
   } catch (error) {
-    console.error('Failed to send to Telegram:', error.message);
+    debugError('Failed to send to Telegram:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -54,45 +59,45 @@ let db;
 try {
   // Use /app/data in production (Fly.io volume), local db/ directory otherwise
   const dataDir = process.env.NODE_ENV === 'production' ? '/app/data' : path.join(__dirname, 'db');
-  console.log('Data directory:', dataDir);
+  debug('Data directory:', dataDir);
   
   if (!fs.existsSync(dataDir)) {
-    console.log('Creating data directory...');
+    debug('Creating data directory...');
     fs.mkdirSync(dataDir, { recursive: true });
   }
   
   try {
-    console.log('Data directory contents:', fs.readdirSync(dataDir));
+    debug('Data directory contents:', fs.readdirSync(dataDir));
   } catch (e) {
-    console.log('Cannot read data directory:', e.message);
+    debug('Cannot read data directory:', e.message);
   }
   
   const dbPath = path.join(dataDir, 'kates-office.db');
-  console.log('Database path:', dbPath);
+  debug('Database path:', dbPath);
   
   db = new Database(dbPath);
-  console.log('Database opened successfully');
+  debug('Database opened successfully');
 
   // Run schema
   const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-  console.log('Schema path:', schemaPath);
-  console.log('Schema exists:', fs.existsSync(schemaPath));
+  debug('Schema path:', schemaPath);
+  debug('Schema exists:', fs.existsSync(schemaPath));
   const schema = fs.readFileSync(schemaPath, 'utf8');
   db.exec(schema);
-  console.log('Schema executed successfully');
+  debug('Schema executed successfully');
 } catch (error) {
-  console.error('Database initialization error:', error.message);
-  console.error('Stack:', error.stack);
+  debugError('Database initialization error:', error.message);
+  debugError('Stack:', error.stack);
   // Try in-memory database as fallback
-  console.log('Attempting in-memory database as fallback...');
+  debug('Attempting in-memory database as fallback...');
   try {
     db = new Database(':memory:');
     const schemaPath = path.join(__dirname, 'db', 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.exec(schema);
-    console.log('In-memory database initialized successfully');
+    debug('In-memory database initialized successfully');
   } catch (fallbackError) {
-    console.error('Fallback also failed:', fallbackError.message);
+    debugError('Fallback also failed:', fallbackError.message);
     process.exit(1);
   }
 }
@@ -185,10 +190,10 @@ app.post('/api/auth/login', (req, res) => {
   
   if (secureCompare(password, KATES_OFFICE_PASSWORD)) {
     req.session.authenticated = true;
-    console.log('User authenticated successfully');
+    debug('User authenticated successfully');
     res.json({ success: true });
   } else {
-    console.log('Failed login attempt');
+    debug('Failed login attempt');
     res.status(401).json({ success: false, error: 'Invalid password' });
   }
 });
@@ -218,7 +223,7 @@ app.use('/api', (req, res, next) => {
 const frontendDistPath = fs.existsSync(path.join(__dirname, 'frontend_dist'))
   ? path.join(__dirname, 'frontend_dist')
   : path.join(__dirname, '..', 'frontend', 'dist');
-console.log('Serving frontend from:', frontendDistPath);
+debug('Serving frontend from:', frontendDistPath);
 app.use(express.static(frontendDistPath));
 
 // WebSocket connections for real-time updates
@@ -226,11 +231,11 @@ const clients = new Set();
 
 wss.on('connection', (ws) => {
   clients.add(ws);
-  console.log('Client connected');
+  debug('Client connected');
   
   ws.on('close', () => {
     clients.delete(ws);
-    console.log('Client disconnected');
+    debug('Client disconnected');
   });
 });
 
@@ -611,7 +616,7 @@ app.post('/api/chat', async (req, res) => {
     message.telegramSent = telegramResult.success;
     if (!telegramResult.success) {
       message.telegramError = telegramResult.error;
-      console.error('Failed to forward to Telegram:', telegramResult.error);
+      debugError('Failed to forward to Telegram:', telegramResult.error);
     }
   }
   
@@ -858,6 +863,160 @@ app.post('/api/chat/send', async (req, res) => {
   }
 });
 
+// ============= FAMILY API (reads from workspace files) =============
+
+// Workspace path - configurable via env for different deployments
+const WORKSPACE_PATH = process.env.WORKSPACE_PATH || '/data/workspace';
+
+// Parse family data from USER.md and gift-tracker-2026.md
+function parseFamilyData() {
+  const family = {
+    immediate: [],
+    extended: [],
+    greatNiecesNephews: []
+  };
+  
+  try {
+    // Read gift tracker for status info
+    const giftTrackerPath = path.join(WORKSPACE_PATH, 'reference', 'gift-tracker-2026.md');
+    let giftData = {};
+    
+    if (fs.existsSync(giftTrackerPath)) {
+      const giftContent = fs.readFileSync(giftTrackerPath, 'utf8');
+      // Parse gift status from markdown table
+      const lines = giftContent.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('|') && !line.includes('Date') && !line.includes('---')) {
+          const cols = line.split('|').map(c => c.trim()).filter(c => c);
+          if (cols.length >= 5) {
+            const person = cols[1];
+            const status = cols[4].includes('DONE') ? 'done' : 
+                          cols[4].includes('SKIP') ? 'skip' :
+                          cols[4].includes('Progress') ? 'in_progress' : 'needed';
+            const notes = cols[5] || '';
+            giftData[person.toLowerCase()] = { status, notes, budget: cols[3] };
+          }
+        }
+      }
+    }
+    
+    // Hard-coded family structure (from USER.md) with dynamic gift status
+    const familyMembers = [
+      // Immediate
+      { id: 'jake', name: 'Jake', relation: 'Partner', birthday: '1991-06-29', category: 'immediate', emoji: '💕' },
+      { id: 'bennett', name: 'Bennett', relation: 'Child', birthday: '2025-08-22', category: 'immediate', emoji: '👶' },
+      { id: 'chelsea', name: 'Chelsea', relation: 'Daughter', birthday: '2003-04-04', category: 'immediate', emoji: '🎓', notes: 'OMS 1 at VCOM Carolinas' },
+      // Extended
+      { id: 'lisa', name: 'Lisa Roberts Milo', relation: 'Mother-in-law', birthday: '03-07', category: 'extended', emoji: '🏠' },
+      { id: 'allison', name: 'Allison Sharpe McMillan', relation: 'Sister', birthday: '08-31', category: 'extended', emoji: '👩', address: '262 Itsa Road, Cleveland, GA 30528' },
+      { id: 'morgan', name: 'Morgan Fox', relation: 'Niece', birthday: '2001-03-16', category: 'extended', emoji: '👩‍⚕️', notes: 'L&D nurse, married to Austin Fox' },
+      { id: 'megan', name: 'Megan McMillan', relation: 'Niece', birthday: '1997-07-02', category: 'extended', emoji: '👩' },
+      { id: 'kamryn', name: 'Kamryn Miller', relation: 'Niece', birthday: '2010-02-16', category: 'extended', emoji: '👧', address: '506 Thomson Road, Washington, GA 30673' },
+      { id: 'andrew', name: 'Andrew Miller', relation: 'Nephew', birthday: '1996-03-02', category: 'extended', emoji: '👨' },
+      { id: 'mikalli', name: 'Mikalli McMillan', relation: 'Niece', birthday: '12-31', category: 'extended', emoji: '🎆' },
+      // Great nieces/nephews
+      { id: 'marley', name: 'Marley', relation: 'Great-niece', birthday: '2015-02-27', category: 'greatNiecesNephews', emoji: '🎀', parentId: 'megan' },
+      { id: 'archer', name: 'Archer', relation: 'Great-nephew', birthday: '2022-04-20', category: 'greatNiecesNephews', emoji: '🏹', parentId: 'megan' },
+      { id: 'motley', name: 'Motley Laine Fox', relation: 'Great-nephew', birthday: '2025-07-01', category: 'greatNiecesNephews', emoji: '🍼', parentId: 'morgan' },
+    ];
+    
+    for (const member of familyMembers) {
+      const giftInfo = giftData[member.name.toLowerCase().split(' ')[0]] || { status: 'needed', notes: '', budget: 'TBD' };
+      const enriched = {
+        ...member,
+        giftStatus: giftInfo.status,
+        giftNotes: giftInfo.notes,
+        giftBudget: giftInfo.budget
+      };
+      family[member.category].push(enriched);
+    }
+    
+  } catch (error) {
+    debugError('Error parsing family data:', error.message);
+  }
+  
+  return family;
+}
+
+app.get('/api/family', (req, res) => {
+  const data = parseFamilyData();
+  res.json(data);
+});
+
+// ============= TRIPS API (reads from workspace files) =============
+
+function parseTripsData() {
+  const trips = [];
+  
+  try {
+    const tripsPath = path.join(WORKSPACE_PATH, 'reference', 'upcoming-personal-2026.md');
+    
+    if (fs.existsSync(tripsPath)) {
+      const content = fs.readFileSync(tripsPath, 'utf8');
+      
+      // Parse cruise and international trips from markdown
+      // Chelsea's Birthday Cruise
+      if (content.includes('Mar 29 - Apr 3')) {
+        trips.push({
+          id: 1,
+          name: "Chelsea's Birthday Cruise",
+          type: 'cruise',
+          destination: 'Caribbean',
+          ship: 'Celebrity Reflection',
+          startDate: '2026-03-29',
+          endDate: '2026-04-03',
+          travelers: ['Zack', 'Jake', 'Chelsea'],
+          occasion: "Chelsea's 23rd Birthday! 🎂",
+          confirmations: { cruise: '8979513', flight: 'GDDTR9' },
+          status: 'upcoming'
+        });
+      }
+      
+      // Celebrity Summit Cruise
+      if (content.includes('Apr 8-14')) {
+        trips.push({
+          id: 2,
+          name: 'Celebrity Summit Cruise + Fort Lauderdale',
+          type: 'cruise',
+          destination: 'Caribbean',
+          ship: 'Celebrity Summit',
+          startDate: '2026-04-08',
+          endDate: '2026-04-14',
+          travelers: ['Zack', 'Jake'],
+          occasion: 'Spring getaway ☀️',
+          confirmations: { cruise: '2977019', flight: 'H5SZIW' },
+          status: 'upcoming'
+        });
+      }
+      
+      // Lake Como
+      if (content.includes('Jun 23 - Jul 1')) {
+        trips.push({
+          id: 3,
+          name: "Lake Como — Jake's Birthday",
+          type: 'international',
+          destination: 'Lake Como, Italy',
+          startDate: '2026-06-23',
+          endDate: '2026-07-01',
+          travelers: ['Zack', 'Jake'],
+          occasion: "Jake's 35th Birthday! 🎂🇮🇹",
+          confirmations: { flight: 'GZ4T38' },
+          status: 'upcoming'
+        });
+      }
+    }
+  } catch (error) {
+    debugError('Error parsing trips data:', error.message);
+  }
+  
+  return trips;
+}
+
+app.get('/api/trips', (req, res) => {
+  const data = parseTripsData();
+  res.json(data);
+});
+
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendDistPath, 'index.html'));
@@ -866,7 +1025,7 @@ app.get('*', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🏠 Kate's Office server running on port ${PORT}`);
-  console.log(`📬 Telegram integration: ${TELEGRAM_BOT_TOKEN ? 'ENABLED' : 'DISABLED'}`);
-  console.log(`💬 Target chat ID: ${TELEGRAM_CHAT_ID}\n`);
+  debug(`\n🏠 Kate's Office server running on port ${PORT}`);
+  debug(`📬 Telegram integration: ${TELEGRAM_BOT_TOKEN ? 'ENABLED' : 'DISABLED'}`);
+  debug(`💬 Target chat ID: ${TELEGRAM_CHAT_ID}\n`);
 });

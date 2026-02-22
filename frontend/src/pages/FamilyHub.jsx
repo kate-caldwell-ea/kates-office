@@ -23,9 +23,10 @@ import {
   Plus,
   History,
 } from 'lucide-react'
+import { API_BASE } from '../config'
 
-// Family data with all details
-const familyData = {
+// Fallback family data (used if API fails)
+const fallbackFamilyData = {
   immediate: [
     {
       id: 'jake',
@@ -545,6 +546,29 @@ function UpcomingBirthdaysBanner() {
 // Main component
 export default function FamilyHub() {
   const [expandedCards, setExpandedCards] = useState(new Set())
+  const [familyData, setFamilyData] = useState(fallbackFamilyData)
+  const [loading, setLoading] = useState(true)
+  
+  // Fetch family data from API
+  useEffect(() => {
+    const fetchFamilyData = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/family`, { credentials: 'include' })
+        if (response.ok) {
+          const data = await response.json()
+          // Merge API data with fallback structure
+          if (data.immediate?.length > 0 || data.extended?.length > 0) {
+            setFamilyData(data)
+          }
+        }
+      } catch (error) {
+        // Use fallback data on error
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFamilyData()
+  }, [])
   
   const toggleCard = (id) => {
     setExpandedCards(prev => {
@@ -556,6 +580,14 @@ export default function FamilyHub() {
       }
       return next
     })
+  }
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-sage-500" />
+      </div>
+    )
   }
   
   return (

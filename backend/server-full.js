@@ -11,6 +11,10 @@ const fs = require('fs');
 const initSqlJs = require('sql.js');
 const DatabaseWrapper = require('./db-wrapper');
 
+// Production-safe logging - only log in development
+const debug = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+const debugError = console.error.bind(console); // Always log errors
+
 // ============= AUTH CONFIGURATION =============
 const KATES_OFFICE_PASSWORD = process.env.KATES_OFFICE_PASSWORD;
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -40,12 +44,13 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
 }
 
-console.log('Starting Kate\'s Office server...');
-console.log('NODE_ENV:', process.env.NODE_ENV);
+debug('Starting Kate\'s Office server...');
+debug('NODE_ENV:', process.env.NODE_ENV);
 
 // ============= TELEGRAM CONFIGURATION =============
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8538460545:AAEmkOAdDWduFyHdVre2lJ8-lYW3rsTgU9Q';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6892982410'; // Zack's chat with Kate
+// SECURITY: Must be set via environment variables - no hardcoded fallbacks!
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // Function to send messages to Telegram
 async function sendToTelegram(text, parseMode = 'HTML') {
@@ -65,14 +70,14 @@ async function sendToTelegram(text, parseMode = 'HTML') {
     
     const result = await response.json();
     if (!result.ok) {
-      console.error('Telegram API error:', result);
+      debugError('Telegram API error:', result);
       return { success: false, error: result.description };
     }
     
-    console.log('Message sent to Telegram successfully');
+    debug('Message sent to Telegram successfully');
     return { success: true, messageId: result.result.message_id };
   } catch (error) {
-    console.error('Failed to send to Telegram:', error.message);
+    debugError('Failed to send to Telegram:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -80,7 +85,7 @@ async function sendToTelegram(text, parseMode = 'HTML') {
 let db;
 
 async function initDatabase() {
-  console.log('Initializing sql.js...');
+  debug('Initializing sql.js...');
   const SQL = await initSqlJs();
   
   // Use /app/data in production (Fly.io volume), local db/ directory otherwise
@@ -91,17 +96,17 @@ async function initDatabase() {
   
   // Try to load existing database
   if (fs.existsSync(dbPath)) {
-    console.log('Loading existing database from:', dbPath);
+    debug('Loading existing database from:', dbPath);
     try {
       const fileBuffer = fs.readFileSync(dbPath);
       rawDb = new SQL.Database(fileBuffer);
-      console.log('Existing database loaded');
+      debug('Existing database loaded');
     } catch (error) {
-      console.log('Failed to load existing database, creating new:', error.message);
+      debug('Failed to load existing database, creating new:', error.message);
       rawDb = new SQL.Database();
     }
   } else {
-    console.log('Creating new database');
+    debug('Creating new database');
     rawDb = new SQL.Database();
   }
   
@@ -109,7 +114,7 @@ async function initDatabase() {
   
   // Run schema (uses IF NOT EXISTS so safe to run always)
   const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-  console.log('Loading schema from:', schemaPath);
+  debug('Loading schema from:', schemaPath);
   const schema = fs.readFileSync(schemaPath, 'utf8');
   
   // Split schema into individual statements and run each
@@ -121,12 +126,12 @@ async function initDatabase() {
       } catch (e) {
         // Ignore errors for statements that might fail on re-run
         if (!e.message.includes('already exists')) {
-          console.log('Schema statement warning:', e.message);
+          debug('Schema statement warning:', e.message);
         }
       }
     }
   }
-  console.log('Schema initialized');
+  debug('Schema initialized');
   
   // Save function to persist database
   db.save = () => {
@@ -138,9 +143,9 @@ async function initDatabase() {
       const data = rawDb.export();
       const buffer = Buffer.from(data);
       fs.writeFileSync(dbPath, buffer);
-      console.log('Database saved to:', dbPath);
+      debug('Database saved to:', dbPath);
     } catch (error) {
-      console.error('Failed to save database:', error.message);
+      debugError('Failed to save database:', error.message);
     }
   };
   
@@ -148,7 +153,7 @@ async function initDatabase() {
   if (process.env.NODE_ENV === 'production') {
     setInterval(() => db.save(), 30000);
     process.on('SIGTERM', () => {
-      console.log('Received SIGTERM, saving database...');
+      debug('Received SIGTERM, saving database...');
       db.save();
       process.exit(0);
     });
@@ -205,10 +210,10 @@ async function startServer() {
     }
     if (secureCompare(password, KATES_OFFICE_PASSWORD)) {
       req.session.authenticated = true;
-      console.log('User authenticated successfully');
+      debug('User authenticated successfully');
       res.json({ success: true });
     } else {
-      console.log('Failed login attempt');
+      debug('Failed login attempt');
       res.status(401).json({ success: false, error: 'Invalid password' });
     }
   });
@@ -250,11 +255,11 @@ async function startServer() {
 
   wss.on('connection', (ws) => {
     clients.add(ws);
-    console.log('Client connected, total:', clients.size);
+    debug('Client connected, total:', clients.size);
     
     ws.on('close', () => {
       clients.delete(ws);
-      console.log('Client disconnected, total:', clients.size);
+      debug('Client disconnected, total:', clients.size);
     });
   });
 
@@ -1761,7 +1766,7 @@ async function startServer() {
         });
       }
     } catch (error) {
-      console.error('Chat send error:', error);
+      debugError('Chat send error:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -1822,6 +1827,160 @@ async function startServer() {
     });
   });
 
+  // ============= FAMILY API (reads from workspace files) =============
+
+  // Workspace path - configurable via env for different deployments
+  const WORKSPACE_PATH = process.env.WORKSPACE_PATH || '/data/workspace';
+
+  // Parse family data from USER.md and gift-tracker-2026.md
+  function parseFamilyData() {
+    const family = {
+      immediate: [],
+      extended: [],
+      greatNiecesNephews: []
+    };
+    
+    try {
+      // Read gift tracker for status info
+      const giftTrackerPath = path.join(WORKSPACE_PATH, 'reference', 'gift-tracker-2026.md');
+      let giftData = {};
+      
+      if (fs.existsSync(giftTrackerPath)) {
+        const giftContent = fs.readFileSync(giftTrackerPath, 'utf8');
+        // Parse gift status from markdown table
+        const lines = giftContent.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('|') && !line.includes('Date') && !line.includes('---')) {
+            const cols = line.split('|').map(c => c.trim()).filter(c => c);
+            if (cols.length >= 5) {
+              const person = cols[1];
+              const status = cols[4].includes('DONE') ? 'done' : 
+                            cols[4].includes('SKIP') ? 'skip' :
+                            cols[4].includes('Progress') ? 'in_progress' : 'needed';
+              const notes = cols[5] || '';
+              giftData[person.toLowerCase()] = { status, notes, budget: cols[3] };
+            }
+          }
+        }
+      }
+      
+      // Hard-coded family structure (from USER.md) with dynamic gift status
+      const familyMembers = [
+        // Immediate
+        { id: 'jake', name: 'Jake', relation: 'Partner', birthday: '1991-06-29', category: 'immediate', emoji: '💕' },
+        { id: 'bennett', name: 'Bennett', relation: 'Child', birthday: '2025-08-22', category: 'immediate', emoji: '👶' },
+        { id: 'chelsea', name: 'Chelsea', relation: 'Daughter', birthday: '2003-04-04', category: 'immediate', emoji: '🎓', notes: 'OMS 1 at VCOM Carolinas' },
+        // Extended
+        { id: 'lisa', name: 'Lisa Roberts Milo', relation: 'Mother-in-law', birthday: '03-07', category: 'extended', emoji: '🏠' },
+        { id: 'allison', name: 'Allison Sharpe McMillan', relation: 'Sister', birthday: '08-31', category: 'extended', emoji: '👩', address: '262 Itsa Road, Cleveland, GA 30528' },
+        { id: 'morgan', name: 'Morgan Fox', relation: 'Niece', birthday: '2001-03-16', category: 'extended', emoji: '👩‍⚕️', notes: 'L&D nurse, married to Austin Fox' },
+        { id: 'megan', name: 'Megan McMillan', relation: 'Niece', birthday: '1997-07-02', category: 'extended', emoji: '👩' },
+        { id: 'kamryn', name: 'Kamryn Miller', relation: 'Niece', birthday: '2010-02-16', category: 'extended', emoji: '👧', address: '506 Thomson Road, Washington, GA 30673' },
+        { id: 'andrew', name: 'Andrew Miller', relation: 'Nephew', birthday: '1996-03-02', category: 'extended', emoji: '👨' },
+        { id: 'mikalli', name: 'Mikalli McMillan', relation: 'Niece', birthday: '12-31', category: 'extended', emoji: '🎆' },
+        // Great nieces/nephews
+        { id: 'marley', name: 'Marley', relation: 'Great-niece', birthday: '2015-02-27', category: 'greatNiecesNephews', emoji: '🎀', parentId: 'megan' },
+        { id: 'archer', name: 'Archer', relation: 'Great-nephew', birthday: '2022-04-20', category: 'greatNiecesNephews', emoji: '🏹', parentId: 'megan' },
+        { id: 'motley', name: 'Motley Laine Fox', relation: 'Great-nephew', birthday: '2025-07-01', category: 'greatNiecesNephews', emoji: '🍼', parentId: 'morgan' },
+      ];
+      
+      for (const member of familyMembers) {
+        const giftInfo = giftData[member.name.toLowerCase().split(' ')[0]] || { status: 'needed', notes: '', budget: 'TBD' };
+        const enriched = {
+          ...member,
+          giftStatus: giftInfo.status,
+          giftNotes: giftInfo.notes,
+          giftBudget: giftInfo.budget
+        };
+        family[member.category].push(enriched);
+      }
+      
+    } catch (error) {
+      debugError('Error parsing family data:', error.message);
+    }
+    
+    return family;
+  }
+
+  app.get('/api/family', (req, res) => {
+    const data = parseFamilyData();
+    res.json(data);
+  });
+
+  // ============= TRIPS API (reads from workspace files) =============
+
+  function parseTripsData() {
+    const trips = [];
+    
+    try {
+      const tripsPath = path.join(WORKSPACE_PATH, 'reference', 'upcoming-personal-2026.md');
+      
+      if (fs.existsSync(tripsPath)) {
+        const content = fs.readFileSync(tripsPath, 'utf8');
+        
+        // Parse cruise and international trips from markdown
+        // Chelsea's Birthday Cruise
+        if (content.includes('Mar 29 - Apr 3')) {
+          trips.push({
+            id: 1,
+            name: "Chelsea's Birthday Cruise",
+            type: 'cruise',
+            destination: 'Caribbean',
+            ship: 'Celebrity Reflection',
+            startDate: '2026-03-29',
+            endDate: '2026-04-03',
+            travelers: ['Zack', 'Jake', 'Chelsea'],
+            occasion: "Chelsea's 23rd Birthday! 🎂",
+            confirmations: { cruise: '8979513', flight: 'GDDTR9' },
+            status: 'upcoming'
+          });
+        }
+        
+        // Celebrity Summit Cruise
+        if (content.includes('Apr 8-14')) {
+          trips.push({
+            id: 2,
+            name: 'Celebrity Summit Cruise + Fort Lauderdale',
+            type: 'cruise',
+            destination: 'Caribbean',
+            ship: 'Celebrity Summit',
+            startDate: '2026-04-08',
+            endDate: '2026-04-14',
+            travelers: ['Zack', 'Jake'],
+            occasion: 'Spring getaway ☀️',
+            confirmations: { cruise: '2977019', flight: 'H5SZIW' },
+            status: 'upcoming'
+          });
+        }
+        
+        // Lake Como
+        if (content.includes('Jun 23 - Jul 1')) {
+          trips.push({
+            id: 3,
+            name: "Lake Como — Jake's Birthday",
+            type: 'international',
+            destination: 'Lake Como, Italy',
+            startDate: '2026-06-23',
+            endDate: '2026-07-01',
+            travelers: ['Zack', 'Jake'],
+            occasion: "Jake's 35th Birthday! 🎂🇮🇹",
+            confirmations: { flight: 'GZ4T38' },
+            status: 'upcoming'
+          });
+        }
+      }
+    } catch (error) {
+      debugError('Error parsing trips data:', error.message);
+    }
+    
+    return trips;
+  }
+
+  app.get('/api/trips', (req, res) => {
+    const data = parseTripsData();
+    res.json(data);
+  });
+
   // Catch-all for SPA routing
   app.get('*', (req, res) => {
     const indexPath = process.env.NODE_ENV === 'production'
@@ -1836,14 +1995,14 @@ async function startServer() {
 
   const PORT = process.env.PORT || 3001;
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🏠 Kate's Office server running on port ${PORT}`);
-    console.log(`📬 Telegram integration: ${TELEGRAM_BOT_TOKEN ? 'ENABLED' : 'DISABLED'}`);
-    console.log(`💬 Target chat ID: ${TELEGRAM_CHAT_ID}\n`);
+    debug(`\n🏠 Kate's Office server running on port ${PORT}`);
+    debug(`📬 Telegram integration: ${TELEGRAM_BOT_TOKEN ? 'ENABLED' : 'DISABLED'}`);
+    debug(`💬 Target chat ID: ${TELEGRAM_CHAT_ID}\n`);
   });
 }
 
 startServer().catch(err => {
-  console.error('Failed to start server:', err);
+  debugError('Failed to start server:', err);
   process.exit(1);
 });
 
