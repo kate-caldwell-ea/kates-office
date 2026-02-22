@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const http = require('http');
 const path = require('path');
@@ -7,6 +10,35 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const initSqlJs = require('sql.js');
 const DatabaseWrapper = require('./db-wrapper');
+
+// ============= AUTH CONFIGURATION =============
+const KATES_OFFICE_PASSWORD = process.env.KATES_OFFICE_PASSWORD;
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+if (!KATES_OFFICE_PASSWORD) {
+  console.warn('\n⚠️  WARNING: KATES_OFFICE_PASSWORD not set!');
+  console.warn('   The app will be accessible without authentication.');
+  console.warn('   Set KATES_OFFICE_PASSWORD env var to enable auth.\n');
+}
+
+// Secure password comparison to prevent timing attacks
+function secureCompare(a, b) {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, Buffer.alloc(bufA.length));
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// Auth middleware
+function requireAuth(req, res, next) {
+  if (!KATES_OFFICE_PASSWORD) return next();
+  if (req.session && req.session.authenticated) return next();
+  res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+}
 
 console.log('Starting Kate\'s Office server...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -132,8 +164,65 @@ async function startServer() {
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws' });
 
-  app.use(cors());
+  app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
+  app.use(cookieParser());
+
+  // Session configuration
+  app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    name: 'kates_office_session',
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+  }));
+
+  // ============= AUTH ROUTES (public) =============
+  
+  app.get('/api/auth/check', (req, res) => {
+    if (!KATES_OFFICE_PASSWORD) {
+      return res.json({ authenticated: true, authRequired: false });
+    }
+    res.json({ 
+      authenticated: req.session?.authenticated || false,
+      authRequired: true
+    });
+  });
+
+  app.post('/api/auth/login', (req, res) => {
+    const { password } = req.body;
+    if (!KATES_OFFICE_PASSWORD) {
+      req.session.authenticated = true;
+      return res.json({ success: true, message: 'No password required' });
+    }
+    if (secureCompare(password, KATES_OFFICE_PASSWORD)) {
+      req.session.authenticated = true;
+      console.log('User authenticated successfully');
+      res.json({ success: true });
+    } else {
+      console.log('Failed login attempt');
+      res.status(401).json({ success: false, error: 'Invalid password' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) return res.status(500).json({ error: 'Failed to logout' });
+      res.clearCookie('kates_office_session');
+      res.json({ success: true });
+    });
+  });
+
+  // Apply auth to all /api routes except /api/auth/* and /api/health
+  app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/auth/') || req.path === '/health') return next();
+    requireAuth(req, res, next);
+  });
 
   // Block search engine indexing
   app.use((req, res, next) => {
