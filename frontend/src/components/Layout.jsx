@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import useStore from '../store/useStore'
+import useAuthStore from '../store/useAuthStore'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -14,6 +15,7 @@ import {
   Sparkles,
   Clock,
   HelpCircle,
+  LogOut,
 } from 'lucide-react'
 
 const navigation = [
@@ -28,6 +30,7 @@ const navigation = [
 
 export default function Layout() {
   const { sidebarOpen, toggleSidebar } = useStore()
+  const { logout, authRequired } = useAuthStore()
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
@@ -124,19 +127,33 @@ export default function Layout() {
         }`}
       >
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 h-16 bg-cream-50/80 backdrop-blur-sm border-b border-cream-200 flex items-center px-6">
-          {!sidebarOpen && (
+        <header className="sticky top-0 z-40 h-16 bg-cream-50/80 backdrop-blur-sm border-b border-cream-200 flex items-center justify-between px-6">
+          <div className="flex items-center">
+            {!sidebarOpen && (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg hover:bg-cream-100 text-warm-500 mr-4"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
+              <span className="text-sm text-warm-500">Kate is online</span>
+            </div>
+          </div>
+          
+          {/* Logout button - only show if auth is required */}
+          {authRequired && (
             <button
-              onClick={toggleSidebar}
-              className="p-2 rounded-lg hover:bg-cream-100 text-warm-500 mr-4"
+              onClick={logout}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cream-100 text-warm-500 hover:text-warm-700 transition-colors"
+              title="Sign out"
             >
-              <Menu className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm">Sign out</span>
             </button>
           )}
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
-            <span className="text-sm text-warm-500">Kate is online</span>
-          </div>
         </header>
 
         {/* Page Content */}

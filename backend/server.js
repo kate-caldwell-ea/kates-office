@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const http = require('http');
 const path = require('path');
@@ -63,11 +66,125 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-app.use(cors());
-app.use(express.json());
+// ============= AUTH CONFIGURATION =============
+const KATES_OFFICE_PASSWORD = process.env.KATES_OFFICE_PASSWORD;
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
-// Serve static frontend files in production
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
+if (!KATES_OFFICE_PASSWORD) {
+  console.warn('\n⚠️  WARNING: KATES_OFFICE_PASSWORD not set!');
+  console.warn('   The app will be accessible without authentication.');
+  console.warn('   Set KATES_OFFICE_PASSWORD env var to enable auth.\n');
+}
+
+// Secure password comparison to prevent timing attacks
+function secureCompare(a, b) {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Still do the comparison to prevent timing attacks
+    crypto.timingSafeEqual(bufA, Buffer.alloc(bufA.length));
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+// Session configuration
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  name: 'kates_office_session',
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
+
+// Auth middleware - checks if user is authenticated
+function requireAuth(req, res, next) {
+  // If no password is set, allow all access
+  if (!KATES_OFFICE_PASSWORD) {
+    return next();
+  }
+  
+  // Check if authenticated
+  if (req.session && req.session.authenticated) {
+    return next();
+  }
+  
+  // Not authenticated
+  res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+}
+
+// ============= AUTH ROUTES (public) =============
+
+// Check auth status
+app.get('/api/auth/check', (req, res) => {
+  if (!KATES_OFFICE_PASSWORD) {
+    return res.json({ authenticated: true, authRequired: false });
+  }
+  res.json({ 
+    authenticated: req.session?.authenticated || false,
+    authRequired: true
+  });
+});
+
+// Login
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  
+  if (!KATES_OFFICE_PASSWORD) {
+    req.session.authenticated = true;
+    return res.json({ success: true, message: 'No password required' });
+  }
+  
+  if (secureCompare(password, KATES_OFFICE_PASSWORD)) {
+    req.session.authenticated = true;
+    console.log('User authenticated successfully');
+    res.json({ success: true });
+  } else {
+    console.log('Failed login attempt');
+    res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+});
+
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to logout' });
+    }
+    res.clearCookie('kates_office_session');
+    res.json({ success: true });
+  });
+});
+
+// ============= PROTECTED ROUTES =============
+// Apply auth middleware to all /api routes except /api/auth/*
+app.use('/api', (req, res, next) => {
+  // Skip auth for auth routes and health check
+  if (req.path.startsWith('/auth/') || req.path === '/health') {
+    return next();
+  }
+  requireAuth(req, res, next);
+});
+
+// Serve static frontend files (both from frontend_dist and ../frontend/dist for dev)
+const frontendDistPath = fs.existsSync(path.join(__dirname, 'frontend_dist'))
+  ? path.join(__dirname, 'frontend_dist')
+  : path.join(__dirname, '..', 'frontend', 'dist');
+console.log('Serving frontend from:', frontendDistPath);
+app.use(express.static(frontendDistPath));
 
 // WebSocket connections for real-time updates
 const clients = new Set();
@@ -610,7 +727,7 @@ app.get('/api/health', (req, res) => {
 
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 // Start server
