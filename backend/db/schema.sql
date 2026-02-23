@@ -139,6 +139,40 @@ CREATE TABLE IF NOT EXISTS voice_notes (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- AI Budget management
+CREATE TABLE IF NOT EXISTS ai_budget (
+    id TEXT PRIMARY KEY,
+    daily_limit_usd REAL DEFAULT 40.00,
+    alert_threshold_pct REAL DEFAULT 75.0,
+    hard_stop_enabled INTEGER DEFAULT 1,
+    override_approved_until TEXT, -- ISO datetime, NULL = no override
+    override_approved_by TEXT,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- AI Usage logging
+CREATE TABLE IF NOT EXISTS ai_usage_log (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT DEFAULT (datetime('now')),
+    session_key TEXT,
+    model TEXT,
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    cached_tokens INTEGER DEFAULT 0,
+    estimated_cost_usd REAL DEFAULT 0,
+    session_type TEXT, -- 'conversation', 'cron', 'subagent', 'heartbeat'
+    notes TEXT
+);
+
+-- AI Budget alerts
+CREATE TABLE IF NOT EXISTS ai_budget_alerts (
+    id TEXT PRIMARY KEY,
+    date TEXT,
+    alert_type TEXT, -- 'warning_75', 'warning_90', 'hard_stop', 'override_granted'
+    message TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
@@ -146,3 +180,6 @@ CREATE INDEX IF NOT EXISTS idx_token_usage_date ON token_usage(date);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_activity_log_created ON activity_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_log_timestamp ON ai_usage_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_log_session ON ai_usage_log(session_key);
+CREATE INDEX IF NOT EXISTS idx_ai_budget_alerts_date ON ai_budget_alerts(date);

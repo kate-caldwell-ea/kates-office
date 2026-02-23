@@ -20,6 +20,7 @@ import {
   Settings,
   ChevronRight,
   Wallet,
+  Cpu,
 } from 'lucide-react'
 
 const navigation = [
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Travel', href: '/travel', icon: Plane },
   { name: 'Cron Jobs', href: '/cron', icon: Clock },
   { name: 'QAPI', href: '/qapi', icon: Shield },
+  { name: 'AI Usage', href: '/ai-usage', icon: Cpu },
   { name: 'Security', href: '/security', icon: ShieldAlert },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]

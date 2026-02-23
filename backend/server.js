@@ -85,6 +85,10 @@ try {
   const schema = fs.readFileSync(schemaPath, 'utf8');
   db.exec(schema);
   debug('Schema executed successfully');
+
+  // Seed default AI budget row
+  db.prepare(`INSERT OR IGNORE INTO ai_budget (id, daily_limit_usd, alert_threshold_pct, hard_stop_enabled) VALUES ('default', 40.00, 75.0, 1)`).run();
+  debug('AI budget seed data ensured');
 } catch (error) {
   debugError('Database initialization error:', error.message);
   debugError('Stack:', error.stack);
@@ -773,6 +777,272 @@ app.patch('/api/notes/:id', (req, res) => {
 app.delete('/api/notes/:id', (req, res) => {
   db.prepare('DELETE FROM notes WHERE id = ?').run(req.params.id);
   res.status(204).send();
+});
+
+// ============= AI USAGE & COST MANAGEMENT API =============
+
+function estimateCost(model, inputTokens, outputTokens, cachedTokens = 0) {
+  const pricing = {
+    'claude-opus-4-6': { input: 15, output: 75, cached: 3.75 },
+    'claude-sonnet-4-6': { input: 3, output: 15, cached: 0.75 },
+    'claude-sonnet-4-5': { input: 3, output: 15, cached: 0.75 },
+    'claude-haiku-4-5': { input: 0.80, output: 4, cached: 0.08 },
+    'gpt-4.1': { input: 2, output: 8, cached: 0.50 },
+    'gpt-4.1-mini': { input: 0.40, output: 1.60, cached: 0.10 },
+  }; // per 1M tokens
+  const p = pricing[model] || pricing['claude-opus-4-6'];
+  const uncachedInput = Math.max(0, inputTokens - cachedTokens);
+  return (uncachedInput * p.input + outputTokens * p.output + cachedTokens * p.cached) / 1_000_000;
+}
+
+// GET /api/ai/usage/today — today's total usage, cost, budget remaining, % used
+app.get('/api/ai/usage/today', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const budget = db.prepare('SELECT * FROM ai_budget WHERE id = ?').get('default');
+
+  const usage = db.prepare(`
+    SELECT
+      COALESCE(SUM(input_tokens), 0) as total_input,
+      COALESCE(SUM(output_tokens), 0) as total_output,
+      COALESCE(SUM(cached_tokens), 0) as total_cached,
+      COALESCE(SUM(estimated_cost_usd), 0) as total_cost,
+      COUNT(*) as entry_count
+    FROM ai_usage_log
+    WHERE date(timestamp) = ?
+  `).get(today);
+
+  const byModel = db.prepare(`
+    SELECT
+      model,
+      COALESCE(SUM(input_tokens), 0) as input_tokens,
+      COALESCE(SUM(output_tokens), 0) as output_tokens,
+      COALESCE(SUM(cached_tokens), 0) as cached_tokens,
+      COALESCE(SUM(estimated_cost_usd), 0) as cost,
+      COUNT(*) as entries
+    FROM ai_usage_log
+    WHERE date(timestamp) = ?
+    GROUP BY model
+  `).all(today);
+
+  const bySessionType = db.prepare(`
+    SELECT
+      session_type,
+      COALESCE(SUM(input_tokens), 0) as input_tokens,
+      COALESCE(SUM(output_tokens), 0) as output_tokens,
+      COALESCE(SUM(cached_tokens), 0) as cached_tokens,
+      COALESCE(SUM(estimated_cost_usd), 0) as cost,
+      COUNT(*) as entries
+    FROM ai_usage_log
+    WHERE date(timestamp) = ?
+    GROUP BY session_type
+  `).all(today);
+
+  const dailyLimit = budget?.daily_limit_usd || 40;
+  const totalCost = usage.total_cost || 0;
+  const remaining = dailyLimit - totalCost;
+  const percentUsed = dailyLimit > 0 ? (totalCost / dailyLimit) * 100 : 0;
+
+  res.json({
+    date: today,
+    total_input: usage.total_input,
+    total_output: usage.total_output,
+    total_cached: usage.total_cached,
+    total_cost: totalCost,
+    entry_count: usage.entry_count,
+    daily_limit: dailyLimit,
+    remaining,
+    percent_used: percentUsed,
+    hard_stop_enabled: budget?.hard_stop_enabled === 1,
+    override_active: budget?.override_approved_until ? new Date(budget.override_approved_until) > new Date() : false,
+    byModel,
+    bySessionType,
+  });
+});
+
+// GET /api/ai/usage/history?days=30 — daily rollup for charting
+app.get('/api/ai/usage/history', (req, res) => {
+  const days = parseInt(req.query.days) || 30;
+  const history = db.prepare(`
+    SELECT
+      date(timestamp) as date,
+      model,
+      COALESCE(SUM(input_tokens), 0) as input_tokens,
+      COALESCE(SUM(output_tokens), 0) as output_tokens,
+      COALESCE(SUM(cached_tokens), 0) as cached_tokens,
+      COALESCE(SUM(estimated_cost_usd), 0) as cost,
+      COUNT(*) as entries
+    FROM ai_usage_log
+    WHERE date(timestamp) >= date('now', ?)
+    GROUP BY date(timestamp), model
+    ORDER BY date(timestamp) ASC
+  `).all(`-${days} days`);
+
+  // Also get daily totals
+  const dailyTotals = db.prepare(`
+    SELECT
+      date(timestamp) as date,
+      COALESCE(SUM(estimated_cost_usd), 0) as total_cost,
+      COALESCE(SUM(input_tokens), 0) as total_input,
+      COALESCE(SUM(output_tokens), 0) as total_output
+    FROM ai_usage_log
+    WHERE date(timestamp) >= date('now', ?)
+    GROUP BY date(timestamp)
+    ORDER BY date(timestamp) ASC
+  `).all(`-${days} days`);
+
+  res.json({ byModelAndDay: history, dailyTotals });
+});
+
+// GET /api/ai/budget — current budget settings
+app.get('/api/ai/budget', (req, res) => {
+  const budget = db.prepare('SELECT * FROM ai_budget WHERE id = ?').get('default');
+  if (!budget) {
+    return res.json({ id: 'default', daily_limit_usd: 40, alert_threshold_pct: 75, hard_stop_enabled: 1, override_approved_until: null, override_approved_by: null });
+  }
+  res.json(budget);
+});
+
+// PUT /api/ai/budget — update daily limit, alert threshold
+app.put('/api/ai/budget', (req, res) => {
+  const { daily_limit_usd, alert_threshold_pct, hard_stop_enabled } = req.body;
+  const updates = [];
+  const values = [];
+
+  if (daily_limit_usd !== undefined) { updates.push('daily_limit_usd = ?'); values.push(daily_limit_usd); }
+  if (alert_threshold_pct !== undefined) { updates.push('alert_threshold_pct = ?'); values.push(alert_threshold_pct); }
+  if (hard_stop_enabled !== undefined) { updates.push('hard_stop_enabled = ?'); values.push(hard_stop_enabled ? 1 : 0); }
+
+  if (updates.length === 0) return res.status(400).json({ error: 'No updates provided' });
+
+  updates.push('updated_at = datetime("now")');
+  values.push('default');
+
+  db.prepare(`UPDATE ai_budget SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  const budget = db.prepare('SELECT * FROM ai_budget WHERE id = ?').get('default');
+
+  logActivity('ai_budget_updated', `AI budget updated: $${budget.daily_limit_usd}/day`, 'ai_budget', 'default');
+  res.json(budget);
+});
+
+// POST /api/ai/usage/log — log a usage entry
+app.post('/api/ai/usage/log', (req, res) => {
+  const id = uuidv4();
+  const { session_key, model, input_tokens = 0, output_tokens = 0, cached_tokens = 0, session_type, notes } = req.body;
+
+  const cost = estimateCost(model, input_tokens, output_tokens, cached_tokens);
+
+  db.prepare(`
+    INSERT INTO ai_usage_log (id, session_key, model, input_tokens, output_tokens, cached_tokens, estimated_cost_usd, session_type, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, session_key, model, input_tokens, output_tokens, cached_tokens, cost, session_type, notes);
+
+  // Check budget alerts
+  const today = new Date().toISOString().split('T')[0];
+  const todayTotal = db.prepare(`SELECT COALESCE(SUM(estimated_cost_usd), 0) as total FROM ai_usage_log WHERE date(timestamp) = ?`).get(today);
+  const budget = db.prepare('SELECT * FROM ai_budget WHERE id = ?').get('default');
+
+  if (budget && todayTotal) {
+    const pctUsed = (todayTotal.total / budget.daily_limit_usd) * 100;
+    if (pctUsed >= 90 && pctUsed < 100) {
+      const existing = db.prepare(`SELECT id FROM ai_budget_alerts WHERE date = ? AND alert_type = 'warning_90'`).get(today);
+      if (!existing) {
+        db.prepare(`INSERT INTO ai_budget_alerts (id, date, alert_type, message) VALUES (?, ?, 'warning_90', ?)`).run(uuidv4(), today, `90% of daily budget used ($${todayTotal.total.toFixed(2)}/$${budget.daily_limit_usd})`);
+      }
+    } else if (pctUsed >= budget.alert_threshold_pct && pctUsed < 90) {
+      const existing = db.prepare(`SELECT id FROM ai_budget_alerts WHERE date = ? AND alert_type = 'warning_75'`).get(today);
+      if (!existing) {
+        db.prepare(`INSERT INTO ai_budget_alerts (id, date, alert_type, message) VALUES (?, ?, 'warning_75', ?)`).run(uuidv4(), today, `${budget.alert_threshold_pct}% of daily budget used ($${todayTotal.total.toFixed(2)}/$${budget.daily_limit_usd})`);
+      }
+    }
+    if (pctUsed >= 100 && budget.hard_stop_enabled) {
+      const existing = db.prepare(`SELECT id FROM ai_budget_alerts WHERE date = ? AND alert_type = 'hard_stop'`).get(today);
+      if (!existing) {
+        db.prepare(`INSERT INTO ai_budget_alerts (id, date, alert_type, message) VALUES (?, ?, 'hard_stop', ?)`).run(uuidv4(), today, `Daily budget exceeded — hard stop triggered ($${todayTotal.total.toFixed(2)}/$${budget.daily_limit_usd})`);
+      }
+    }
+  }
+
+  const entry = db.prepare('SELECT * FROM ai_usage_log WHERE id = ?').get(id);
+  broadcast('ai_usage_logged', entry);
+  res.status(201).json(entry);
+});
+
+// POST /api/ai/budget/override — grant temporary override
+app.post('/api/ai/budget/override', (req, res) => {
+  const { approved_by = 'zack', duration_hours = 4 } = req.body;
+  const until = new Date(Date.now() + duration_hours * 60 * 60 * 1000).toISOString();
+
+  db.prepare(`UPDATE ai_budget SET override_approved_until = ?, override_approved_by = ?, updated_at = datetime('now') WHERE id = 'default'`).run(until, approved_by);
+
+  const alertId = uuidv4();
+  const today = new Date().toISOString().split('T')[0];
+  db.prepare(`INSERT INTO ai_budget_alerts (id, date, alert_type, message) VALUES (?, ?, 'override_granted', ?)`).run(alertId, today, `Budget override granted by ${approved_by} until ${until}`);
+
+  logActivity('ai_budget_override', `AI budget override granted by ${approved_by} for ${duration_hours}h`, 'ai_budget', 'default');
+
+  const budget = db.prepare('SELECT * FROM ai_budget WHERE id = ?').get('default');
+  res.json({ success: true, budget, override_until: until });
+});
+
+// GET /api/ai/usage/sessions — active sessions with estimated burn rate
+app.get('/api/ai/usage/sessions', (req, res) => {
+  // Get sessions active in the last 30 minutes
+  const sessions = db.prepare(`
+    SELECT
+      session_key,
+      model,
+      session_type,
+      MIN(timestamp) as started_at,
+      MAX(timestamp) as last_activity,
+      COALESCE(SUM(input_tokens), 0) as total_input,
+      COALESCE(SUM(output_tokens), 0) as total_output,
+      COALESCE(SUM(cached_tokens), 0) as total_cached,
+      COALESCE(SUM(estimated_cost_usd), 0) as total_cost,
+      COUNT(*) as entries
+    FROM ai_usage_log
+    WHERE timestamp >= datetime('now', '-30 minutes')
+      AND session_key IS NOT NULL
+    GROUP BY session_key
+    ORDER BY last_activity DESC
+  `).all();
+
+  // Calculate burn rate for each session
+  const enriched = sessions.map(s => {
+    const durationMin = Math.max(1, (new Date(s.last_activity) - new Date(s.started_at)) / 60000);
+    const tokensPerMin = (s.total_input + s.total_output) / durationMin;
+    const costPerHour = (s.total_cost / durationMin) * 60;
+    return {
+      ...s,
+      duration_minutes: Math.round(durationMin),
+      tokens_per_minute: Math.round(tokensPerMin),
+      cost_per_hour: costPerHour,
+    };
+  });
+
+  res.json(enriched);
+});
+
+// GET /api/ai/models — current model config
+app.get('/api/ai/models', (req, res) => {
+  res.json({
+    primary: { model: 'claude-opus-4-6', status: 'active', role: 'Primary' },
+    fallbacks: [
+      { model: 'claude-sonnet-4-6', status: 'standby', role: 'Fallback 1' },
+      { model: 'gpt-4.1', status: 'standby', role: 'Fallback 2' },
+    ],
+    cron: { model: 'claude-sonnet-4-6', status: 'active', role: 'Cron Tasks' },
+  });
+});
+
+// GET /api/ai/alerts — recent budget alerts
+app.get('/api/ai/alerts', (req, res) => {
+  const limit = parseInt(req.query.limit) || 20;
+  const alerts = db.prepare(`
+    SELECT * FROM ai_budget_alerts
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(limit);
+  res.json(alerts);
 });
 
 // ============= HEALTH CHECK =============

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="152" height="152" viewBox="0 0 152 152">
+  <!-- Background -->
+  <rect width="152" height="152" fill="#779977" rx="33.44"/>
+  
+  <!-- Inner circle for maskable -->
+  
+  
+  <!-- Sparkle icon -->
+  <g transform="translate(0, 0) scale(6.333333333333333)">
+    <path 
+      d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" 
+      fill="#FFFFFF" 
+      stroke="none"
+    />
+    <path 
+      d="M18.5 12l.75 2.25L21.5 15l-2.25.75-.75 2.25-.75-2.25L15.5 15l2.25-.75.75-2.25z" 
+      fill="#FFFFFF" 
+      opacity="0.8"
+    />
+    <path 
+      d="M5.5 14l.5 1.5L7.5 16l-1.5.5-.5 1.5-.5-1.5L3.5 16l1.5-.5.5-1.5z" 
+      fill="#FFFFFF" 
+      opacity="0.6"
+    />
+  </g>
+</svg>
