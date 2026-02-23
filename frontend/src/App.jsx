@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
 import Layout from './components/Layout'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Kanban from './pages/Kanban'
 import Expenses from './pages/Expenses'
@@ -11,8 +13,19 @@ import FamilyHub from './pages/FamilyHub'
 import TravelPlanner from './pages/TravelPlanner'
 import Settings from './pages/Settings'
 import AIUsage from './pages/AIUsage'
+import useAuthStore from './store/useAuthStore'
 
 function App() {
+  const { isAuthenticated, checkAuth } = useAuthStore()
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  if (!isAuthenticated) {
+    return <Login />
+  }
+
   return (
     <BrowserRouter>
       <Routes>
