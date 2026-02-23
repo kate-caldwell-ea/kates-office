@@ -17,23 +17,23 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg mb-4">
-            <span className="text-4xl">🏠</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg mb-4">
+            <span className="text-4xl">✦</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Kate's Office</h1>
-          <p className="text-gray-500 mt-2">Enter password to continue</p>
+          <h1 className="text-3xl font-bold text-white">Kate's Office</h1>
+          <p className="text-gray-400 mt-2">Enter password to continue</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8">
+        <div className="bg-dark-800 backdrop-blur-sm rounded-2xl shadow-xl border border-dark-600 p-8">
           <form onSubmit={handleSubmit}>
             {/* Error Message */}
             {error && (
-              <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+              <div className="mb-6 flex items-center gap-3 p-4 bg-red-900/30 border border-red-700 rounded-xl text-red-400">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">{error}</span>
                 <button 
@@ -48,7 +48,7 @@ export default function Login() {
 
             {/* Password Input */}
             <div className="mb-6">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -60,7 +60,7 @@ export default function Login() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                   placeholder="Enter your password"
                   autoFocus
                   disabled={isSubmitting}
@@ -72,7 +72,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={!password.trim() || isSubmitting}
-              className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

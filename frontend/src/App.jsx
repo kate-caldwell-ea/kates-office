@@ -16,11 +16,19 @@ import AIUsage from './pages/AIUsage'
 import useAuthStore from './store/useAuthStore'
 
 function App() {
-  const { isAuthenticated, checkAuth } = useAuthStore()
+  const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+        <div className="text-teal-400 text-lg animate-pulse">Loading...</div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Login />
