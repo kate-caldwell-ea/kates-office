@@ -114,7 +114,7 @@ export default function Questions() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-gold-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -123,11 +123,11 @@ export default function Questions() {
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
           <Sparkles className="w-8 h-8 text-white" />
         </div>
         <h1 className="page-title">Daily Questions</h1>
-        <p className="text-warm-500 mt-1">
+        <p className="text-text-400 mt-1">
           Kate's 3:30 PM check-ins — answer when you feel like it
         </p>
       </div>
@@ -135,45 +135,45 @@ export default function Questions() {
       {/* Stats */}
       <div className="flex justify-center gap-6">
         <div className="text-center">
-          <p className="text-3xl font-semibold text-sage-600">{pendingSets.length}</p>
-          <p className="text-xs text-warm-500">Pending</p>
+          <p className="text-3xl font-semibold text-teal-400">{pendingSets.length}</p>
+          <p className="text-xs text-text-400">Pending</p>
         </div>
-        <div className="w-px bg-cream-200" />
+        <div className="w-px bg-dark-400" />
         <div className="text-center">
-          <p className="text-3xl font-semibold text-warm-600">{answeredSets.length}</p>
-          <p className="text-xs text-warm-500">Answered</p>
+          <p className="text-3xl font-semibold text-text-300">{answeredSets.length}</p>
+          <p className="text-xs text-text-400">Answered</p>
         </div>
       </div>
 
       {/* Pending Questions */}
       {pendingSets.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-sm font-medium text-warm-500 uppercase tracking-wide">
+          <h2 className="text-sm font-medium text-text-400 uppercase tracking-wide">
             Waiting for your answers
           </h2>
           
           {pendingSets.map((set) => (
             <div
               key={set.id}
-              className="bg-white rounded-2xl border-2 border-sage-200 overflow-hidden shadow-sm"
+              className="bg-dark-700 rounded-2xl border-2 border-teal-500/20 overflow-hidden shadow-sm"
             >
               <button
                 onClick={() => toggleExpand(set.id, set.questions, set.answers)}
-                className="w-full p-4 flex items-center justify-between hover:bg-sage-50 transition-colors"
+                className="w-full p-4 flex items-center justify-between hover:bg-dark-600/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-sage-600" />
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/15 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-teal-400" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-warm-800">{formatDate(set.date)}</p>
-                    <p className="text-sm text-warm-500">{set.questions.length} questions</p>
+                    <p className="font-medium text-text-200">{formatDate(set.date)}</p>
+                    <p className="text-sm text-text-400">{set.questions.length} questions</p>
                   </div>
                 </div>
                 {expandedSet === set.id ? (
-                  <ChevronUp className="w-5 h-5 text-warm-400" />
+                  <ChevronUp className="w-5 h-5 text-text-500" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-warm-400" />
+                  <ChevronDown className="w-5 h-5 text-text-500" />
                 )}
               </button>
               
@@ -182,7 +182,7 @@ export default function Questions() {
                   {set.questions.map((question, idx) => (
                     <div key={idx} className="space-y-2">
                       <label className="block">
-                        <span className="text-sm font-medium text-warm-700">
+                        <span className="text-sm font-medium text-text-300">
                           {idx + 1}. {question}
                         </span>
                         <textarea
@@ -190,7 +190,7 @@ export default function Questions() {
                           onChange={(e) => handleAnswerChange(idx, e.target.value)}
                           placeholder="Your answer..."
                           rows={3}
-                          className="mt-2 w-full px-4 py-3 rounded-xl border border-cream-200 focus:border-sage-400 focus:ring-2 focus:ring-sage-100 outline-none transition-all resize-none text-warm-800"
+                          className="mt-2 w-full px-4 py-3 rounded-xl border border-dark-300/30 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20 outline-none transition-all resize-none text-text-200"
                         />
                       </label>
                     </div>
@@ -199,7 +199,7 @@ export default function Questions() {
                   <button
                     onClick={() => handleSubmit(set.id, set.questions)}
                     disabled={submitting}
-                    className="w-full py-3 rounded-xl bg-sage-500 text-white font-medium hover:bg-sage-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 rounded-xl bg-gold-500 text-white font-medium hover:bg-gold-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {submitting ? (
                       <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -219,54 +219,54 @@ export default function Questions() {
 
       {/* Empty State */}
       {pendingSets.length === 0 && (
-        <div className="bg-cream-100 rounded-2xl p-8 text-center">
-          <CheckCircle2 className="w-12 h-12 text-sage-400 mx-auto mb-3" />
-          <p className="text-warm-600 font-medium">All caught up!</p>
-          <p className="text-warm-400 text-sm mt-1">No pending questions right now</p>
+        <div className="bg-dark-500 rounded-2xl p-8 text-center">
+          <CheckCircle2 className="w-12 h-12 text-teal-400 mx-auto mb-3" />
+          <p className="text-text-300 font-medium">All caught up!</p>
+          <p className="text-text-500 text-sm mt-1">No pending questions right now</p>
         </div>
       )}
 
       {/* Answered History */}
       {answeredSets.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-sm font-medium text-warm-500 uppercase tracking-wide">
+          <h2 className="text-sm font-medium text-text-400 uppercase tracking-wide">
             Previous answers
           </h2>
           
           {answeredSets.map((set) => (
             <div
               key={set.id}
-              className="bg-white rounded-2xl border border-cream-200 overflow-hidden"
+              className="bg-dark-700 rounded-2xl border border-dark-300/30 overflow-hidden"
             >
               <button
                 onClick={() => toggleExpand(set.id, set.questions, set.answers)}
-                className="w-full p-4 flex items-center justify-between hover:bg-cream-50 transition-colors"
+                className="w-full p-4 flex items-center justify-between hover:bg-dark-600/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cream-100 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-sage-500" />
+                  <div className="w-10 h-10 rounded-xl bg-dark-500 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-teal-400" />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-warm-700">{formatShortDate(set.date)}</p>
-                    <p className="text-sm text-warm-400">{set.questions.length} answered</p>
+                    <p className="font-medium text-text-300">{formatShortDate(set.date)}</p>
+                    <p className="text-sm text-text-500">{set.questions.length} answered</p>
                   </div>
                 </div>
                 {expandedSet === set.id ? (
-                  <ChevronUp className="w-5 h-5 text-warm-400" />
+                  <ChevronUp className="w-5 h-5 text-text-500" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-warm-400" />
+                  <ChevronDown className="w-5 h-5 text-text-500" />
                 )}
               </button>
               
               {expandedSet === set.id && (
-                <div className="px-4 pb-4 space-y-4 border-t border-cream-100 pt-4">
+                <div className="px-4 pb-4 space-y-4 border-t border-dark-300/20 pt-4">
                   {set.questions.map((question, idx) => (
                     <div key={idx} className="space-y-1">
-                      <p className="text-sm font-medium text-warm-600">
+                      <p className="text-sm font-medium text-text-300">
                         {idx + 1}. {question}
                       </p>
-                      <p className="text-warm-800 bg-cream-50 rounded-lg px-3 py-2">
-                        {set.answers?.[idx] || <span className="text-warm-400 italic">No answer</span>}
+                      <p className="text-text-200 bg-dark-600/50 rounded-lg px-3 py-2">
+                        {set.answers?.[idx] || <span className="text-text-500 italic">No answer</span>}
                       </p>
                     </div>
                   ))}

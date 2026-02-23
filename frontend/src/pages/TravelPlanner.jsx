@@ -228,11 +228,11 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
               Completed
             </div>
           ) : isImminent ? (
-            <div className="px-4 py-2 rounded-xl bg-rose-gold-500 text-white font-semibold shadow-lg animate-pulse">
+            <div className="px-4 py-2 rounded-xl bg-gold-600 text-white font-semibold shadow-lg animate-pulse">
               {daysUntil === 0 ? "TODAY! ✈️" : `${daysUntil} days away!`}
             </div>
           ) : (
-            <div className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-warm-700 text-sm font-medium">
+            <div className="px-3 py-1.5 rounded-full bg-dark-600/90 backdrop-blur text-warm-700 text-sm font-medium">
               {daysUntil} days
             </div>
           )}
@@ -240,8 +240,8 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
         
         {/* Type Badge */}
         <div className="absolute top-4 left-4">
-          <div className="p-2 rounded-xl bg-white/90 backdrop-blur shadow-sm">
-            <TripIcon className="w-5 h-5 text-sage-600" />
+          <div className="p-2 rounded-xl bg-dark-600/90 backdrop-blur shadow-sm">
+            <TripIcon className="w-5 h-5 text-teal-400" />
           </div>
         </div>
         
@@ -276,7 +276,7 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
           </div>
         </div>
         {trip.occasion && (
-          <span className="text-sm text-rose-gold-600 font-medium">{trip.occasion}</span>
+          <span className="text-sm text-gold-400 font-medium">{trip.occasion}</span>
         )}
       </div>
       
@@ -289,7 +289,7 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
           </div>
           <div className="h-2 bg-cream-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-sage-500 rounded-full transition-all duration-300"
+              className="h-full bg-gold-500 rounded-full transition-all duration-300"
               style={{ width: `${(packedCount / trip.packingList.length) * 100}%` }}
             />
           </div>
@@ -301,7 +301,7 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
           </div>
           <div className="h-2 bg-cream-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-rose-gold-500 rounded-full transition-all duration-300"
+              className="h-full bg-gold-600 rounded-full transition-all duration-300"
               style={{ width: `${(tasksComplete / trip.tasks.length) * 100}%` }}
             />
           </div>
@@ -311,7 +311,7 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
       {/* Expand/Collapse Button */}
       <button
         onClick={onToggleExpand}
-        className="w-full flex items-center justify-center gap-2 py-2 text-sm text-sage-600 hover:text-sage-700 font-medium transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-2 text-sm text-teal-400 hover:text-teal-300 font-medium transition-colors"
       >
         {isExpanded ? (
           <>
@@ -362,14 +362,14 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
                 <div 
                   key={idx}
                   className={`flex items-center gap-3 p-3 rounded-lg ${
-                    flight.type === 'outbound' ? 'bg-sage-50' : 'bg-rose-gold-50'
+                    flight.type === 'outbound' ? 'bg-sage-50' : 'bg-gold-500/10'
                   }`}
                 >
                   <div className={`p-1.5 rounded-lg ${
-                    flight.type === 'outbound' ? 'bg-sage-100' : 'bg-rose-gold-100'
+                    flight.type === 'outbound' ? 'bg-teal-500/15' : 'bg-gold-500/15'
                   }`}>
                     <Plane className={`w-4 h-4 ${
-                      flight.type === 'outbound' ? 'text-sage-600' : 'text-rose-gold-600 rotate-180'
+                      flight.type === 'outbound' ? 'text-teal-400' : 'text-gold-400 rotate-180'
                     }`} />
                   </div>
                   <div className="flex-1">
@@ -400,7 +400,7 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
                       {hotel.note && (
                         <>
                           <span>•</span>
-                          <span className="text-rose-gold-600">{hotel.note}</span>
+                          <span className="text-gold-400">{hotel.note}</span>
                         </>
                       )}
                     </div>
@@ -424,11 +424,11 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
                   className={`flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                     item.checked 
                       ? 'bg-sage-50 text-warm-500 line-through' 
-                      : 'bg-cream-50 text-warm-800 hover:bg-cream-100'
+                      : 'bg-cream-50 text-warm-800 hover:bg-dark-500/50'
                   }`}
                 >
                   {item.checked ? (
-                    <CheckCircle2 className="w-5 h-5 text-sage-500 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-teal-400 flex-shrink-0" />
                   ) : (
                     <Circle className="w-5 h-5 text-warm-400 flex-shrink-0" />
                   )}
@@ -453,13 +453,13 @@ function TripCard({ trip, onUpdate, isExpanded, onToggleExpand }) {
                   className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                     task.done 
                       ? 'bg-sage-50' 
-                      : 'bg-rose-gold-50 hover:bg-rose-gold-100'
+                      : 'bg-gold-500/10 hover:bg-gold-500/15'
                   }`}
                 >
                   {task.done ? (
-                    <CheckCircle2 className="w-5 h-5 text-sage-500 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-teal-400 flex-shrink-0" />
                   ) : (
-                    <Circle className="w-5 h-5 text-rose-gold-400 flex-shrink-0" />
+                    <Circle className="w-5 h-5 text-gold-400 flex-shrink-0" />
                   )}
                   <span className={`flex-1 ${task.done ? 'text-warm-500 line-through' : 'text-warm-800'}`}>
                     {task.task}
@@ -521,7 +521,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
           <h2 className="text-xl font-semibold text-warm-800" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Plan New Adventure
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-cream-100 text-warm-500">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-dark-500/50 text-warm-500">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -533,7 +533,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
               placeholder="Summer in Positano..."
               required
             />
@@ -544,7 +544,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
             <select
               value={formData.type}
               onChange={(e) => setFormData({...formData, type: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
             >
               <option value="flight">✈️ Flight</option>
               <option value="cruise">🚢 Cruise</option>
@@ -559,7 +559,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
               type="text"
               value={formData.destination}
               onChange={(e) => setFormData({...formData, destination: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
               placeholder="Amalfi Coast, Italy"
               required
             />
@@ -572,7 +572,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
                 required
               />
             </div>
@@ -582,7 +582,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
                 required
               />
             </div>
@@ -594,7 +594,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
               type="text"
               value={formData.travelers}
               onChange={(e) => setFormData({...formData, travelers: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
               placeholder="Zack, Jake"
               required
             />
@@ -606,7 +606,7 @@ function AddTripModal({ isOpen, onClose, onAdd }) {
               type="text"
               value={formData.occasion}
               onChange={(e) => setFormData({...formData, occasion: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-cream-300 focus:ring-2 focus:ring-sage-400 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-xl border border-dark-300 focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
               placeholder="Anniversary celebration 💕"
             />
           </div>
@@ -694,7 +694,7 @@ export default function TravelPlanner() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-sage-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
       </div>
     )
   }
@@ -702,14 +702,14 @@ export default function TravelPlanner() {
   return (
     <div className="space-y-6">
       {/* Hero Header */}
-      <div className="relative bg-gradient-to-r from-sage-600 to-sage-500 rounded-2xl p-6 md:p-8 text-white shadow-lg overflow-hidden">
+      <div className="relative bg-gradient-to-r from-teal-700 to-teal-600 rounded-2xl p-6 md:p-8 text-white shadow-lg overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 opacity-10">
           <Plane className="w-full h-full" />
         </div>
         
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+            <div className="p-2 bg-white/10 rounded-xl backdrop-blur-sm">
               <Plane className="w-6 h-6" />
             </div>
             <h1 className="text-2xl md:text-3xl font-semibold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
@@ -717,7 +717,7 @@ export default function TravelPlanner() {
             </h1>
           </div>
           
-          <p className="text-sage-100 text-lg">
+          <p className="text-teal-100 text-lg">
             {upcomingTrips.length} upcoming adventure{upcomingTrips.length !== 1 ? 's' : ''} planned
           </p>
           
@@ -725,12 +725,12 @@ export default function TravelPlanner() {
             <div className="mt-4 inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
               <div className="text-center">
                 <p className="text-3xl font-bold">{daysUntilNext}</p>
-                <p className="text-xs text-sage-200 uppercase tracking-wide">days until</p>
+                <p className="text-xs text-teal-200 uppercase tracking-wide">days until</p>
               </div>
-              <div className="w-px h-10 bg-white/30" />
+              <div className="w-px h-10 bg-white/10" />
               <div>
                 <p className="font-semibold">{nextTrip.name}</p>
-                <p className="text-sm text-sage-200">{formatDateRange(nextTrip.startDate, nextTrip.endDate)}</p>
+                <p className="text-sm text-teal-200">{formatDateRange(nextTrip.startDate, nextTrip.endDate)}</p>
               </div>
             </div>
           )}
@@ -746,8 +746,8 @@ export default function TravelPlanner() {
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 filter === f 
-                  ? 'bg-sage-500 text-white' 
-                  : 'bg-cream-100 text-warm-600 hover:bg-cream-200'
+                  ? 'bg-gold-500 text-white' 
+                  : 'bg-cream-100 text-warm-600 hover:bg-dark-400/50'
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -780,7 +780,7 @@ export default function TravelPlanner() {
       {displayTrips.length === 0 && (
         <div className="card text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cream-100 flex items-center justify-center">
-            <Palmtree className="w-8 h-8 text-sage-500" />
+            <Palmtree className="w-8 h-8 text-teal-400" />
           </div>
           <h3 className="text-lg font-semibold text-warm-800 mb-2">No trips to show</h3>
           <p className="text-warm-500 mb-4">
@@ -798,20 +798,20 @@ export default function TravelPlanner() {
       
       {/* Quick Tips */}
       {upcomingTrips.length > 0 && (
-        <div className="card bg-gradient-to-br from-cream-50 to-sage-50">
+        <div className="card bg-dark-600/50">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-sage-100 rounded-xl">
-              <Sparkles className="w-6 h-6 text-sage-600" />
+            <div className="p-3 bg-teal-500/15 rounded-xl">
+              <Sparkles className="w-6 h-6 text-teal-400" />
             </div>
             <div>
               <h3 className="font-semibold text-warm-800 mb-2">Kate's Travel Tips</h3>
               <ul className="space-y-1.5 text-sm text-warm-600">
                 <li className="flex items-center gap-2">
-                  <Sun className="w-4 h-4 text-rose-gold-500" />
+                  <Sun className="w-4 h-4 text-gold-400" />
                   Check packing lists 1 week before departure
                 </li>
                 <li className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-sage-500" />
+                  <FileText className="w-4 h-4 text-teal-400" />
                   Download offline maps and boarding passes
                 </li>
                 <li className="flex items-center gap-2">

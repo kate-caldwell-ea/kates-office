@@ -18,18 +18,18 @@ import {
 
 
 const columns = [
-  { id: 'inbox', title: 'Inbox', emoji: '📥', color: 'bg-warm-100 border-warm-200' },
-  { id: 'in_progress', title: 'In Progress', emoji: '🔄', color: 'bg-sage-50 border-sage-200' },
-  { id: 'waiting', title: 'Waiting', emoji: '⏳', color: 'bg-rose-gold-50 border-rose-gold-200' },
-  { id: 'blocked', title: 'Blocked', emoji: '🚧', color: 'bg-red-50 border-red-200' },
-  { id: 'done', title: 'Done', emoji: '✓', color: 'bg-sage-100 border-sage-300' },
+  { id: 'inbox', title: 'Inbox', emoji: '📥', color: 'bg-dark-700/50 border-dark-300/30' },
+  { id: 'in_progress', title: 'In Progress', emoji: '🔄', color: 'bg-dark-700/50 border-teal-500/20' },
+  { id: 'waiting', title: 'Waiting', emoji: '⏳', color: 'bg-dark-700/50 border-gold-500/20' },
+  { id: 'blocked', title: 'Blocked', emoji: '🚧', color: 'bg-dark-700/50 border-red-500/20' },
+  { id: 'done', title: 'Done', emoji: '✓', color: 'bg-dark-700/50 border-teal-500/30' },
 ]
 
 const priorityColors = {
-  urgent: 'bg-red-100 text-red-700 border-red-200',
-  high: 'bg-rose-gold-100 text-rose-gold-700 border-rose-gold-200',
-  normal: 'bg-sage-100 text-sage-700 border-sage-200',
-  low: 'bg-warm-100 text-warm-600 border-warm-200',
+  urgent: 'bg-red-500/15 text-red-400 border-red-500/20',
+  high: 'bg-gold-500/15 text-gold-400 border-gold-500/20',
+  normal: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
+  low: 'bg-dark-400/50 text-text-400 border-dark-300/30',
 }
 
 export default function Kanban() {
@@ -126,7 +126,7 @@ export default function Kanban() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-gold-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -136,16 +136,16 @@ export default function Kanban() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-warm-800">Assignments</h1>
-          <p className="text-warm-500 mt-1">Drag and drop to update status</p>
+          <h1 className="text-2xl font-semibold text-text-200">Assignments</h1>
+          <p className="text-text-400 mt-1">Drag and drop to update status</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowArchived(!showArchived)}
             className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
               showArchived 
-                ? 'bg-amber-100 text-amber-700 border border-amber-200' 
-                : 'bg-cream-100 text-warm-600 hover:bg-cream-200'
+                ? 'bg-gold-500/15 text-gold-400 border border-gold-500/20' 
+                : 'bg-dark-500 text-text-300 hover:bg-dark-400/50'
             }`}
           >
             <Archive className="w-4 h-4" />
@@ -175,12 +175,12 @@ export default function Kanban() {
               onDrop={(e) => handleDrop(e, column.id)}
             >
               {/* Column Header */}
-              <div className="p-4 border-b border-cream-200/50">
+              <div className="p-4 border-b border-dark-300/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{column.emoji}</span>
-                    <h3 className="font-semibold text-warm-700">{column.title}</h3>
-                    <span className="px-2 py-0.5 rounded-full bg-white text-xs font-medium text-warm-500">
+                    <h3 className="font-semibold text-text-300">{column.title}</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-dark-700 text-xs font-medium text-text-400">
                       {columnAssignments.length}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export default function Kanban() {
                             {assignment.priority}
                           </span>
                           {assignment.archived && (
-                            <span className="badge bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
+                            <span className="badge bg-dark-400/50 text-text-500 border-dark-300/30 flex items-center gap-1">
                               <Archive className="w-3 h-3" />
                               archived
                             </span>
@@ -214,7 +214,7 @@ export default function Kanban() {
                         </div>
                         {dueInfo && (
                           <span className={`text-xs flex items-center gap-1 ${
-                            dueInfo.urgent ? 'text-red-500 font-medium' : 'text-warm-400'
+                            dueInfo.urgent ? 'text-red-400 font-medium' : 'text-text-500'
                           }`}>
                             <Calendar className="w-3 h-3" />
                             {dueInfo.text}
@@ -223,13 +223,13 @@ export default function Kanban() {
                       </div>
 
                       {/* Title */}
-                      <h4 className="font-medium text-warm-800 mb-2 line-clamp-2">
+                      <h4 className="font-medium text-text-200 mb-2 line-clamp-2">
                         {assignment.title}
                       </h4>
 
                       {/* Description Preview */}
                       {assignment.description && (
-                        <p className="text-sm text-warm-500 line-clamp-2 mb-3">
+                        <p className="text-sm text-text-400 line-clamp-2 mb-3">
                           {assignment.description}
                         </p>
                       )}
@@ -240,7 +240,7 @@ export default function Kanban() {
                           {assignment.tags.slice(0, 3).map((tag) => (
                             <span
                               key={tag}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cream-100 text-xs text-warm-600"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-dark-500 text-xs text-text-300"
                             >
                               <Tag className="w-3 h-3" />
                               {tag}
@@ -254,7 +254,7 @@ export default function Kanban() {
 
                 {/* Empty State */}
                 {columnAssignments.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-32 text-warm-400">
+                  <div className="flex flex-col items-center justify-center h-32 text-text-500">
                     <p className="text-sm">No assignments</p>
                   </div>
                 )}
@@ -356,14 +356,14 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-dark-700 rounded-2xl shadow-xl border border-dark-300/30 w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-cream-200">
+        <div className="flex items-center justify-between p-4 border-b border-dark-300/30">
           <div className="flex items-center gap-2">
             <span className={`badge ${priorityColors[priority]}`}>{priority}</span>
-            <span className="text-sm text-warm-400 capitalize">{assignment.status.replace('_', ' ')}</span>
+            <span className="text-sm text-text-500 capitalize">{assignment.status.replace('_', ' ')}</span>
             {assignment.archived && (
-              <span className="badge bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
+              <span className="badge bg-dark-400/50 text-text-500 border-dark-300/30 flex items-center gap-1">
                 <Archive className="w-3 h-3" />
                 archived
               </span>
@@ -372,7 +372,7 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setEditing(!editing)}
-              className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
+              className="p-2 rounded-lg hover:bg-dark-500/50 text-text-400"
               title="Edit"
             >
               <Edit3 className="w-5 h-5" />
@@ -391,21 +391,21 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
                   console.error('Failed to toggle archive:', err)
                 }
               }}
-              className={`p-2 rounded-lg ${assignment.archived ? 'hover:bg-sage-50 text-sage-600' : 'hover:bg-amber-50 text-amber-600'}`}
+              className={`p-2 rounded-lg ${assignment.archived ? 'hover:bg-teal-500/10 text-teal-400' : 'hover:bg-amber-50 text-amber-600'}`}
               title={assignment.archived ? 'Restore from archive' : 'Archive'}
             >
               {assignment.archived ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
             </button>
             <button
               onClick={handleDelete}
-              className="p-2 rounded-lg hover:bg-red-50 text-red-500"
+              className="p-2 rounded-lg hover:bg-red-500/10 text-red-400"
               title="Delete"
             >
               <Trash2 className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
+              className="p-2 rounded-lg hover:bg-dark-500/50 text-text-400"
               title="Close"
             >
               <X className="w-5 h-5" />
@@ -432,7 +432,7 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
               />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-warm-500 mb-1">Priority</label>
+                  <label className="block text-sm text-text-400 mb-1">Priority</label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
@@ -445,7 +445,7 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-warm-500 mb-1">Due Date</label>
+                  <label className="block text-sm text-text-400 mb-1">Due Date</label>
                   <input
                     type="date"
                     value={dueDate}
@@ -465,12 +465,12 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
             </div>
           ) : (
             <div>
-              <h2 className="text-xl font-semibold text-warm-800 mb-4">{assignment.title}</h2>
+              <h2 className="text-xl font-semibold text-text-200 mb-4">{assignment.title}</h2>
               {assignment.description && (
-                <p className="text-warm-600 whitespace-pre-wrap mb-4">{assignment.description}</p>
+                <p className="text-text-300 whitespace-pre-wrap mb-4">{assignment.description}</p>
               )}
               {assignment.due_date && (
-                <div className="flex items-center gap-2 text-warm-500 mb-4">
+                <div className="flex items-center gap-2 text-text-400 mb-4">
                   <Calendar className="w-4 h-4" />
                   <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
                 </div>
@@ -478,7 +478,7 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
               {assignment.tags && assignment.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {assignment.tags.map(tag => (
-                    <span key={tag} className="badge badge-sage">
+                    <span key={tag} className="badge badge-teal">
                       <Tag className="w-3 h-3" /> {tag}
                     </span>
                   ))}
@@ -488,8 +488,8 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
           )}
 
           {/* Comments Section */}
-          <div className="mt-6 pt-6 border-t border-cream-200">
-            <h3 className="font-semibold text-warm-800 mb-4 flex items-center gap-2">
+          <div className="mt-6 pt-6 border-t border-dark-300/30">
+            <h3 className="font-semibold text-text-200 mb-4 flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
               Comments ({comments.length})
             </h3>
@@ -516,18 +516,18 @@ function AssignmentModal({ assignment, onClose, onUpdate }) {
             {/* Comments List */}
             <div className="space-y-3">
               {comments.map((comment) => (
-                <div key={comment.id} className="p-3 rounded-xl bg-cream-50">
+                <div key={comment.id} className="p-3 rounded-xl bg-dark-600/50">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-warm-700 capitalize">{comment.author}</span>
-                    <span className="text-xs text-warm-400">
+                    <span className="font-medium text-text-300 capitalize">{comment.author}</span>
+                    <span className="text-xs text-text-500">
                       {new Date(comment.created_at).toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-warm-600">{comment.content}</p>
+                  <p className="text-text-300">{comment.content}</p>
                 </div>
               ))}
               {comments.length === 0 && (
-                <p className="text-warm-400 text-sm text-center py-4">No comments yet</p>
+                <p className="text-text-500 text-sm text-center py-4">No comments yet</p>
               )}
             </div>
           </div>
@@ -571,17 +571,17 @@ function NewAssignmentModal({ onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+      <div className="bg-dark-700 rounded-2xl shadow-xl border border-dark-300/30 w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-warm-800">New Assignment</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-cream-100 text-warm-500">
+          <h2 className="text-xl font-semibold text-text-200">New Assignment</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-dark-500/50 text-text-400">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-warm-500 mb-1">Title *</label>
+            <label className="block text-sm text-text-400 mb-1">Title *</label>
             <input
               type="text"
               value={title}
@@ -592,7 +592,7 @@ function NewAssignmentModal({ onClose, onCreated }) {
             />
           </div>
           <div>
-            <label className="block text-sm text-warm-500 mb-1">Description</label>
+            <label className="block text-sm text-text-400 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -602,7 +602,7 @@ function NewAssignmentModal({ onClose, onCreated }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-warm-500 mb-1">Priority</label>
+              <label className="block text-sm text-text-400 mb-1">Priority</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
@@ -615,7 +615,7 @@ function NewAssignmentModal({ onClose, onCreated }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-warm-500 mb-1">Due Date</label>
+              <label className="block text-sm text-text-400 mb-1">Due Date</label>
               <input
                 type="date"
                 value={dueDate}
@@ -625,7 +625,7 @@ function NewAssignmentModal({ onClose, onCreated }) {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-warm-500 mb-1">Tags (comma separated)</label>
+            <label className="block text-sm text-text-400 mb-1">Tags (comma separated)</label>
             <input
               type="text"
               value={tags}

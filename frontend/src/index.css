@@ -1,53 +1,63 @@
 @import "tailwindcss";
 
-/* Kate's Office - Custom Theme */
+/* Kate's Office - Dark Executive Theme */
 @theme {
-  /* Warm cream and sage color palette */
-  --color-cream-50: #FFFDF7;
-  --color-cream-100: #FEF9EF;
-  --color-cream-200: #FDF3E0;
-  --color-cream-300: #FAEBD2;
-  --color-cream-400: #F5DFC0;
-  --color-cream-500: #EDD4AE;
-  
-  --color-sage-50: #F4F7F4;
-  --color-sage-100: #E8EFE8;
-  --color-sage-200: #D1DFD1;
-  --color-sage-300: #B5CBB5;
-  --color-sage-400: #95B295;
-  --color-sage-500: #779977;
-  --color-sage-600: #5F7A5F;
-  --color-sage-700: #4A604A;
-  --color-sage-800: #3A4D3A;
-  --color-sage-900: #2D3D2D;
-  
-  --color-rose-gold-50: #FDF8F6;
-  --color-rose-gold-100: #FAF0EB;
-  --color-rose-gold-200: #F5DDD3;
-  --color-rose-gold-300: #E8C4B4;
-  --color-rose-gold-400: #D9A792;
-  --color-rose-gold-500: #C99076;
-  --color-rose-gold-600: #B07A5F;
-  --color-rose-gold-700: #8F614B;
-  --color-rose-gold-800: #744F3D;
-  --color-rose-gold-900: #5A3D30;
-  
-  /* Warm neutrals */
-  --color-warm-50: #FAFAF8;
-  --color-warm-100: #F5F4F0;
-  --color-warm-200: #E8E6E0;
-  --color-warm-300: #D4D1C8;
-  --color-warm-400: #B5B1A5;
-  --color-warm-500: #968F80;
-  --color-warm-600: #7A7367;
-  --color-warm-700: #625C52;
-  --color-warm-800: #4D4842;
-  --color-warm-900: #3A3733;
+  /* Dark backgrounds */
+  --color-dark-950: #060609;
+  --color-dark-900: #0a0a0f;
+  --color-dark-800: #0f0f16;
+  --color-dark-700: #12121a;
+  --color-dark-600: #181822;
+  --color-dark-500: #1e1e2a;
+  --color-dark-400: #252533;
+  --color-dark-300: #2d2d3d;
+  --color-dark-200: #383848;
+  --color-dark-100: #454558;
+
+  /* Gold accent */
+  --color-gold-50: #FFF9E6;
+  --color-gold-100: #FFF0BF;
+  --color-gold-200: #FFE699;
+  --color-gold-300: #FFD966;
+  --color-gold-400: #FFCC33;
+  --color-gold-500: #D4A529;
+  --color-gold-600: #B8922A;
+  --color-gold-700: #9A7B23;
+  --color-gold-800: #7C631C;
+  --color-gold-900: #5E4B15;
+
+  /* Teal accent */
+  --color-teal-50: #E6FFF9;
+  --color-teal-100: #B3FFE9;
+  --color-teal-200: #80FFD9;
+  --color-teal-300: #4DFFC9;
+  --color-teal-400: #2BEDB5;
+  --color-teal-500: #1AC9A0;
+  --color-teal-600: #14A080;
+  --color-teal-700: #0F7A62;
+  --color-teal-800: #0A5544;
+  --color-teal-900: #053026;
+
+  /* Text colors */
+  --color-text-50: #FFFFFF;
+  --color-text-100: #F0F0F5;
+  --color-text-200: #D8D8E3;
+  --color-text-300: #B0B0C0;
+  --color-text-400: #8888A0;
+  --color-text-500: #666680;
+  --color-text-600: #505068;
+  --color-text-700: #3A3A50;
+
+  /* Status colors */
+  --color-status-success: #22C55E;
+  --color-status-warning: #F59E0B;
+  --color-status-error: #EF4444;
+  --color-status-info: #3B82F6;
 }
 
-/* Custom base styles */
+/* Base styles */
 body {
-  @apply bg-cream-50 text-warm-800 antialiased;
+  @apply bg-dark-900 text-text-200 antialiased;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -56,52 +66,52 @@ body {
   @apply transition-colors duration-150;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — dark */
 ::-webkit-scrollbar {
-  @apply w-2;
+  @apply w-1.5;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-cream-100 rounded-full;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-sage-300 rounded-full hover:bg-sage-400;
+  @apply bg-dark-200 rounded-full hover:bg-dark-100;
 }
 
-/* Card styles */
+/* Card styles — dark glass */
 .card {
-  @apply bg-white rounded-2xl shadow-sm border border-cream-200 p-6;
-  @apply hover:shadow-md transition-shadow duration-200;
+  @apply bg-dark-700/80 rounded-2xl border border-dark-300/50 p-5;
+  backdrop-filter: blur(12px);
 }
 
 .card-hover {
-  @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  @apply hover:border-dark-200 hover:bg-dark-600/80 transition-all duration-200;
 }
 
 /* Button base */
 .btn {
   @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium;
-  @apply transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  @apply transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900;
 }
 
 .btn-primary {
-  @apply bg-sage-500 text-white hover:bg-sage-600 focus:ring-sage-400;
+  @apply bg-gold-500 text-dark-900 hover:bg-gold-400 focus:ring-gold-500/50;
 }
 
 .btn-secondary {
-  @apply bg-cream-200 text-warm-700 hover:bg-cream-300 focus:ring-cream-400;
+  @apply bg-dark-500 text-text-200 hover:bg-dark-400 focus:ring-dark-300;
 }
 
-.btn-rose {
-  @apply bg-rose-gold-500 text-white hover:bg-rose-gold-600 focus:ring-rose-gold-400;
+.btn-teal {
+  @apply bg-teal-600 text-white hover:bg-teal-500 focus:ring-teal-500/50;
 }
 
-/* Input styles */
+/* Input styles — dark */
 .input {
-  @apply w-full px-4 py-2.5 rounded-xl border border-cream-300 bg-white;
-  @apply focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent;
-  @apply placeholder:text-warm-400;
+  @apply w-full px-4 py-2.5 rounded-xl border border-dark-300 bg-dark-600;
+  @apply focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500/50;
+  @apply placeholder:text-text-500 text-text-100;
 }
 
 /* Badge styles */
@@ -109,110 +119,30 @@ body {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
 
-.badge-sage {
-  @apply bg-sage-100 text-sage-700;
+.badge-gold {
+  @apply bg-gold-500/15 text-gold-400;
 }
 
-.badge-rose {
-  @apply bg-rose-gold-100 text-rose-gold-700;
+.badge-teal {
+  @apply bg-teal-500/15 text-teal-400;
 }
 
-.badge-cream {
-  @apply bg-cream-200 text-warm-600;
+.badge-muted {
+  @apply bg-dark-300/50 text-text-400;
 }
 
 /* Skeleton loading */
 .skeleton {
-  @apply animate-pulse bg-cream-200 rounded;
+  @apply animate-pulse bg-dark-500 rounded;
 }
 
-/* Page titles with Playfair Display */
+/* Page titles */
 .page-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  @apply text-2xl font-semibold text-warm-800 tracking-tight;
+  font-family: 'Inter', system-ui, sans-serif;
+  @apply text-xl font-semibold text-text-100 tracking-tight;
 }
 
-/* Command Palette Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideDown {
-  from { 
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.15s ease-out;
-}
-
-.animate-slideDown {
-  animation: slideDown 0.2s ease-out;
-}
-
-/* Enhanced card hover effects */
-.card-interactive {
-  @apply bg-white rounded-2xl shadow-sm border border-cream-200 p-6;
-  @apply hover:shadow-lg hover:-translate-y-1 hover:border-sage-200;
-  @apply transition-all duration-300 ease-out cursor-pointer;
-}
-
-/* Subtle hover lift for cards */
-.hover-lift {
-  @apply transition-all duration-200 ease-out;
-}
-
-.hover-lift:hover {
-  @apply -translate-y-0.5 shadow-md;
-}
-
-/* Kanban card enhanced hover */
-.kanban-card {
-  @apply bg-white rounded-xl p-4 shadow-sm border border-cream-200 cursor-grab;
-  @apply transition-all duration-200 ease-out;
-}
-
-.kanban-card:hover {
-  @apply shadow-lg border-sage-200 -translate-y-0.5;
-  box-shadow: 0 8px 25px -5px rgba(119, 153, 119, 0.15);
-}
-
-.kanban-card:active {
-  @apply cursor-grabbing shadow-xl scale-[1.02];
-}
-
-/* Navigation link hover effect */
-.nav-link-hover {
-  @apply relative overflow-hidden;
-}
-
-.nav-link-hover::after {
-  content: '';
-  @apply absolute inset-0 bg-sage-100 opacity-0 transition-opacity duration-200;
-  z-index: -1;
-}
-
-.nav-link-hover:hover::after {
-  @apply opacity-100;
-}
-
-/* Quick action cards */
-.quick-action {
-  @apply transition-all duration-200 ease-out;
-}
-
-.quick-action:hover {
-  @apply -translate-y-1;
-}
-
-/* Shimmer effect for premium feel */
+/* Shimmer effect — dark */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -221,31 +151,45 @@ body {
 .shimmer {
   background: linear-gradient(
     90deg,
-    var(--color-cream-200) 25%,
-    var(--color-cream-100) 50%,
-    var(--color-cream-200) 75%
+    var(--color-dark-500) 25%,
+    var(--color-dark-400) 50%,
+    var(--color-dark-500) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Kanban column drag styles */
+/* Kanban styles — dark */
 .kanban-column {
-  @apply bg-cream-100/50 rounded-2xl p-4 min-h-96;
+  @apply bg-dark-800/50 rounded-2xl p-4 min-h-96;
 }
 
 .kanban-card {
-  @apply bg-white rounded-xl p-4 shadow-sm border border-cream-200 cursor-grab;
-  @apply hover:shadow-md hover:border-sage-200 transition-all duration-200;
+  @apply bg-dark-600 rounded-xl p-4 border border-dark-300/50 cursor-grab;
+  @apply hover:border-gold-500/30 hover:bg-dark-500 transition-all duration-200;
 }
 
 .kanban-card:active {
   @apply cursor-grabbing shadow-lg scale-[1.02];
 }
 
-/* Dragging state */
 .dragging {
   @apply opacity-50;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 165, 41, 0.1);
+}
+
+.glow-teal {
+  box-shadow: 0 0 20px rgba(26, 201, 160, 0.1);
+}
+
+/* Subtle border glow on hover */
+.card-glow:hover {
+  box-shadow: 0 0 30px rgba(212, 165, 41, 0.06);
+  border-color: rgba(212, 165, 41, 0.15);
 }
 
 /* Mobile-specific styles */
@@ -253,23 +197,20 @@ body {
   .card {
     @apply p-4 rounded-xl;
   }
-  
+
   .btn {
     @apply px-3 py-2;
   }
-  
-  /* Safe area for bottom nav */
+
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
-  /* Touch-friendly targets */
+
   button, a {
     min-height: 44px;
     min-width: 44px;
   }
-  
-  /* Prevent text selection on mobile nav */
+
   nav {
     -webkit-user-select: none;
     user-select: none;
@@ -281,26 +222,17 @@ body {
   ::-webkit-scrollbar {
     display: none;
   }
-  
+
   * {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
 }
 
-/* Touch highlight color */
+/* Touch highlight */
 * {
-  -webkit-tap-highlight-color: rgba(124, 152, 133, 0.1);
+  -webkit-tap-highlight-color: rgba(212, 165, 41, 0.08);
 }
-
-/* Responsive text */
-.text-responsive {
-  @apply text-sm sm:text-base;
-}
-
-/* ============================================
-   PWA ADDITIONS
-   ============================================ */
 
 /* Safe area classes for PWA */
 .safe-area-top {
@@ -311,56 +243,24 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Touch manipulation for interactive elements */
+/* Touch manipulation */
 .touch-manipulation {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Slide-up animation for bottom sheets */
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slideUp {
-  animation: slideUp 0.25s ease-out;
-}
-
-/* Slide-down animation */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slideDown {
-  animation: slideDown 0.25s ease-out;
-}
-
-/* PWA standalone mode detection */
+/* PWA standalone mode */
 @media (display-mode: standalone) {
   body {
     overscroll-behavior: none;
   }
-  
+
   .pwa-install-prompt {
     display: none !important;
   }
 }
 
-/* Reduced motion for accessibility */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

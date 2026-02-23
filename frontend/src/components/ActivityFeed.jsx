@@ -9,20 +9,20 @@ import {
 
 const activityIcons = {
   assignment: {
-    created: { icon: PlusCircle, color: 'text-sage-500 bg-sage-100' },
-    completed: { icon: CheckCircle2, color: 'text-sage-600 bg-sage-100' },
-    updated: { icon: Clock, color: 'text-warm-500 bg-warm-100' },
+    created: { icon: PlusCircle, color: 'text-teal-400 bg-teal-500/10' },
+    completed: { icon: CheckCircle2, color: 'text-teal-400 bg-teal-500/10' },
+    updated: { icon: Clock, color: 'text-text-400 bg-dark-500' },
   },
   expense: {
-    approved: { icon: DollarSign, color: 'text-sage-500 bg-sage-100' },
-    submitted: { icon: DollarSign, color: 'text-rose-gold-500 bg-rose-gold-100' },
+    approved: { icon: DollarSign, color: 'text-gold-400 bg-gold-500/10' },
+    submitted: { icon: DollarSign, color: 'text-gold-400 bg-gold-500/10' },
   },
   incident: {
-    opened: { icon: AlertCircle, color: 'text-rose-gold-500 bg-rose-gold-100' },
-    resolved: { icon: CheckCircle2, color: 'text-sage-500 bg-sage-100' },
+    opened: { icon: AlertCircle, color: 'text-red-400 bg-red-500/10' },
+    resolved: { icon: CheckCircle2, color: 'text-teal-400 bg-teal-500/10' },
   },
   chat: {
-    message: { icon: MessageCircle, color: 'text-sage-500 bg-sage-100' },
+    message: { icon: MessageCircle, color: 'text-text-400 bg-dark-500' },
   },
 }
 
@@ -40,9 +40,9 @@ const actionLabels = {
 export default function ActivityFeed({ activities, compact = false }) {
   if (!activities || activities.length === 0) {
     return (
-      <div className="text-center py-8 text-warm-500">
-        <Clock className="w-8 h-8 mx-auto mb-2 text-warm-300" />
-        <p>No recent activity</p>
+      <div className="text-center py-8 text-text-500">
+        <Clock className="w-8 h-8 mx-auto mb-2 text-text-600" />
+        <p className="text-sm">No recent activity</p>
       </div>
     )
   }
@@ -80,7 +80,7 @@ function ActivityItem({ activity, isLast, compact }) {
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
-    
+
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -88,30 +88,27 @@ function ActivityItem({ activity, isLast, compact }) {
   }
 
   return (
-    <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-cream-50 transition-colors">
-      {/* Icon */}
+    <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-dark-600/40 transition-colors">
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconConfig.color}`}
+        className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${iconConfig.color}`}
       >
-        <Icon className="w-4 h-4" />
+        <Icon className="w-3.5 h-3.5" />
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-warm-800">
+        <p className="text-xs text-text-300">
           <span className="capitalize">{actionLabels[activity.action] || activity.action}</span>{' '}
-          <span className="font-medium">{activity.title}</span>
+          <span className="font-medium text-text-200">{activity.title}</span>
         </p>
         {!compact && (
-          <p className="text-xs text-warm-500 mt-0.5">
+          <p className="text-[10px] text-text-500 mt-0.5">
             {formatTime(activity.timestamp)}
           </p>
         )}
       </div>
 
-      {/* Time (compact mode) */}
       {compact && (
-        <span className="text-xs text-warm-400 flex-shrink-0">
+        <span className="text-[10px] text-text-500 flex-shrink-0">
           {formatTime(activity.timestamp)}
         </span>
       )}

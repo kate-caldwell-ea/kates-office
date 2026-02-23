@@ -4,7 +4,6 @@ import Dashboard from './pages/Dashboard'
 import Kanban from './pages/Kanban'
 import Expenses from './pages/Expenses'
 import QAPI from './pages/QAPI'
-import Chat from './pages/Chat'
 import CronJobs from './pages/CronJobs'
 import Questions from './pages/Questions'
 import Security from './pages/Security'
@@ -27,7 +26,6 @@ function App() {
           <Route path="qapi" element={<QAPI />} />
           <Route path="security" element={<Security />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="chat" element={<Chat />} />
         </Route>
       </Routes>
     </BrowserRouter>
