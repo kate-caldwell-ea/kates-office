@@ -24,8 +24,8 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-        <div className="text-teal-400 text-lg animate-pulse">Loading...</div>
+      <div style={{minHeight:'100vh',background:'#0a0a0f',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{color:'#2dd4bf',fontSize:'18px'}}>Loading...</div>
       </div>
     )
   }
