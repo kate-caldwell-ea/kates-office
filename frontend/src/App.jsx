@@ -13,6 +13,8 @@ import FamilyHub from './pages/FamilyHub'
 import TravelPlanner from './pages/TravelPlanner'
 import Settings from './pages/Settings'
 import AIUsage from './pages/AIUsage'
+import BennettTracker from './pages/BennettTracker'
+import GiftTracker from './pages/GiftTracker'
 import useAuthStore from './store/useAuthStore'
 
 function App() {
@@ -40,6 +42,8 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="assignments" element={<Kanban />} />
+          <Route path="bennett" element={<BennettTracker />} />
+          <Route path="gifts" element={<GiftTracker />} />
           <Route path="expenses" element={<Expenses />} />
           <Route path="questions" element={<Questions />} />
           <Route path="family" element={<FamilyHub />} />

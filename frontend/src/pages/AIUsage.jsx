@@ -194,8 +194,11 @@ export default function AIUsage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-text-200">AI Usage & Costs</h1>
-          <p className="text-text-400 mt-1">Monitor Kate's AI consumption and budget</p>
+          <h1 className="text-2xl font-semibold text-text-200 flex items-center gap-3">
+            <Cpu className="w-7 h-7 text-teal-400" />
+            Kate's Operational Costs
+          </h1>
+          <p className="text-text-400 mt-1">LLM token usage, API costs, and daily budget tracking — Kate's AI running costs</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={fetchAll} className="btn btn-secondary flex items-center gap-2">
@@ -286,76 +289,80 @@ export default function AIUsage() {
       )}
 
       {/* C. Today's Usage Breakdown */}
-      {todayUsage && (todayUsage.bySessionType?.length > 0 || todayUsage.byModel?.length > 0) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card"
-        >
-          <h2 className="font-semibold text-text-200 mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-gold-400" />
-            Today's Breakdown
-          </h2>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="card"
+      >
+        <h2 className="font-semibold text-text-200 mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-gold-400" />
+          Today's Breakdown
+        </h2>
 
-          {todayUsage.bySessionType?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm text-text-400 mb-3">By Session Type</h3>
-              <div className="space-y-2">
-                {todayUsage.bySessionType.map((s) => (
-                  <div
-                    key={s.session_type}
-                    className={`flex items-center justify-between p-3 rounded-xl bg-dark-600/50 ${
-                      s.cost > 5 ? 'ring-1 ring-red-500/50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-text-200 capitalize">{s.session_type || 'unknown'}</span>
-                      {s.cost > 5 && <AlertTriangle className="w-4 h-4 text-red-400" />}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-text-400">{formatTokens(s.input_tokens)} in / {formatTokens(s.output_tokens)} out</span>
-                      <span className="font-semibold text-text-200">${s.cost.toFixed(3)}</span>
-                    </div>
+        {todayUsage?.bySessionType?.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-sm text-text-400 mb-3">By Session Type</h3>
+            <div className="space-y-2">
+              {todayUsage.bySessionType.map((s) => (
+                <div
+                  key={s.session_type}
+                  className={`flex items-center justify-between p-3 rounded-xl bg-dark-600/50 ${
+                    s.cost > 5 ? 'ring-1 ring-red-500/50' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-text-200 capitalize">{s.session_type || 'unknown'}</span>
+                    {s.cost > 5 && <AlertTriangle className="w-4 h-4 text-red-400" />}
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-text-400">{formatTokens(s.input_tokens)} in / {formatTokens(s.output_tokens)} out</span>
+                    <span className="font-semibold text-text-200">${s.cost.toFixed(3)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {todayUsage.byModel?.length > 0 && (
-            <div>
-              <h3 className="text-sm text-text-400 mb-3">By Model</h3>
-              <div className="space-y-2">
-                {todayUsage.byModel.map((m) => {
-                  const total = todayUsage.total_cost || 1
-                  const pct = (m.cost / total) * 100
-                  return (
-                    <div key={m.model} className="flex items-center gap-3">
+        {todayUsage?.byModel?.length > 0 && (
+          <div>
+            <h3 className="text-sm text-text-400 mb-3">By Model</h3>
+            <div className="space-y-2">
+              {todayUsage.byModel.map((m) => {
+                const total = todayUsage.total_cost || 1
+                const pct = (m.cost / total) * 100
+                return (
+                  <div key={m.model} className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: MODEL_COLORS[m.model] || '#6b7280' }}
+                    />
+                    <span className="text-sm text-text-300 w-40 truncate">{m.model}</span>
+                    <div className="flex-1 h-2 bg-dark-400 rounded-full overflow-hidden">
                       <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: MODEL_COLORS[m.model] || '#6b7280' }}
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: MODEL_COLORS[m.model] || '#6b7280' }}
                       />
-                      <span className="text-sm text-text-300 w-40 truncate">{m.model}</span>
-                      <div className="flex-1 h-2 bg-dark-400 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, backgroundColor: MODEL_COLORS[m.model] || '#6b7280' }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-text-200 w-20 text-right">${m.cost.toFixed(3)}</span>
                     </div>
-                  )
-                })}
-              </div>
+                    <span className="text-sm font-medium text-text-200 w-20 text-right">${m.cost.toFixed(3)}</span>
+                  </div>
+                )
+              })}
             </div>
-          )}
+          </div>
+        )}
 
-          {todayUsage.bySessionType?.length === 0 && todayUsage.byModel?.length === 0 && (
-            <p className="text-text-500 text-center py-4">No usage recorded today</p>
-          )}
-        </motion.div>
-      )}
+        {(!todayUsage?.bySessionType?.length && !todayUsage?.byModel?.length) && (
+          <div className="text-center py-8">
+            <Cpu className="w-10 h-10 text-text-600 mx-auto mb-3" />
+            <p className="text-text-400 font-medium">No usage recorded today</p>
+            <p className="text-text-500 text-sm mt-1">
+              Kate logs token usage automatically after each interaction. Data will appear here as she works.
+            </p>
+          </div>
+        )}
+      </motion.div>
 
       {/* D. 30-Day Trend Chart */}
       <motion.div
@@ -411,7 +418,11 @@ export default function AIUsage() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-text-500 text-center py-8">No usage history yet</p>
+          <div className="text-center py-8">
+            <TrendingUp className="w-10 h-10 text-text-600 mx-auto mb-3" />
+            <p className="text-text-400 font-medium">No cost history yet</p>
+            <p className="text-text-500 text-sm mt-1">Daily cost data will chart here once Kate starts logging AI usage.</p>
+          </div>
         )}
       </motion.div>
 

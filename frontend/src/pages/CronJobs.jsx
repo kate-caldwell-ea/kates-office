@@ -1,5 +1,6 @@
 import { API_URL } from '../config.js';
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Clock,
   Calendar,
@@ -11,31 +12,33 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
-  ChevronRight,
+  AlertCircle,
+  Zap,
 } from 'lucide-react'
 
-const getJobIcon = (name) => {
-  if (name.includes('birthday') || name.includes('🎂')) return Gift
-  if (name.includes('trip') || name.includes('✈️') || name.includes('🚢') || name.includes('🇮🇹')) return Plane
-  if (name.includes('visit') || name.includes('🏠')) return Home
-  if (name.includes('Anniversary') || name.includes('💍')) return Heart
-  return Bell
+const categoryMap = {
+  brief: { label: 'Briefs', icon: Zap, color: 'text-teal-400', bg: 'bg-teal-500/15' },
+  birthday: { label: 'Birthdays', icon: Gift, color: 'text-pink-400', bg: 'bg-pink-500/15' },
+  trip: { label: 'Trips', icon: Plane, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+  monitor: { label: 'Monitors', icon: AlertCircle, color: 'text-gold-400', bg: 'bg-gold-500/15' },
+  maintenance: { label: 'Maintenance', icon: Home, color: 'text-purple-400', bg: 'bg-purple-500/15' },
+  other: { label: 'Other', icon: Bell, color: 'text-text-400', bg: 'bg-dark-500' },
 }
 
-const getJobColor = (name) => {
-  if (name.includes('🚨')) return 'border-red-300 bg-red-50'
-  if (name.includes('birthday') || name.includes('🎂')) return 'border-pink-200 bg-pink-50'
-  if (name.includes('trip') || name.includes('✈️') || name.includes('🚢') || name.includes('🇮🇹')) return 'border-blue-200 bg-blue-50'
-  if (name.includes('visit') || name.includes('🏠')) return 'border-purple-200 bg-purple-50'
-  if (name.includes('Anniversary') || name.includes('💍')) return 'border-rose-200 bg-rose-50'
-  return 'border-sage-200 bg-sage-50'
+const getJobCategory = (job) => {
+  if (job.name.includes('birthday') || job.name.includes('🎂')) return 'birthday'
+  if (job.name.includes('trip') || job.name.includes('✈️') || job.name.includes('🚢') || job.name.includes('🇮🇹')) return 'trip'
+  if (job.name.includes('brief') || job.name.includes('morning') || job.name.includes('evening')) return 'brief'
+  if (job.name.includes('monitor') || job.name.includes('check') || job.name.includes('🚨')) return 'monitor'
+  if (job.name.includes('visit') || job.name.includes('🏠') || job.name.includes('maintenance')) return 'maintenance'
+  return 'other'
 }
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit'
@@ -47,15 +50,41 @@ const getTimeUntil = (dateStr) => {
   const now = new Date()
   const target = new Date(dateStr)
   const diff = target - now
-  
-  if (diff < 0) return 'Past'
-  
+
+  if (diff < 0) return { text: 'Past', color: 'text-text-500' }
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  
-  if (days > 0) return `${days}d ${hours}h`
-  if (hours > 0) return `${hours}h`
-  return 'Soon'
+
+  if (days > 7) return { text: `${days}d`, color: 'text-text-400' }
+  if (days > 0) return { text: `${days}d ${hours}h`, color: 'text-teal-400' }
+  if (hours > 0) return { text: `${hours}h`, color: 'text-gold-400' }
+  return { text: 'Soon', color: 'text-red-400 font-semibold' }
+}
+
+const statusBadge = (status) => {
+  if (!status) return null
+  const configs = {
+    ok: { label: 'Success', color: 'bg-teal-500/15 text-teal-400' },
+    success: { label: 'Success', color: 'bg-teal-500/15 text-teal-400' },
+    failed: { label: 'Failed', color: 'bg-red-500/15 text-red-400' },
+    error: { label: 'Error', color: 'bg-red-500/15 text-red-400' },
+    skipped: { label: 'Skipped', color: 'bg-dark-400 text-text-400' },
+  }
+  const cfg = configs[status] || configs.skipped
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.color}`}>
+      {cfg.label}
+    </span>
+  )
+}
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.04, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
 }
 
 export default function CronJobs() {
@@ -89,8 +118,8 @@ export default function CronJobs() {
     try {
       const res = await fetch(`${API_URL}/cron/sync`, { method: 'POST' })
       const data = await res.json()
-      if (data.synced) {
-        setJobs(data.jobs || [])
+      if (data.jobs) {
+        setJobs(data.jobs)
         setLastSync(new Date().toISOString())
       }
     } catch (err) {
@@ -102,11 +131,7 @@ export default function CronJobs() {
 
   const filteredJobs = jobs.filter(job => {
     if (filter === 'all') return true
-    if (filter === 'daily') return job.schedule?.kind === 'cron'
-    if (filter === 'upcoming') return job.schedule?.kind === 'at'
-    if (filter === 'birthdays') return job.name.includes('birthday') || job.name.includes('🎂')
-    if (filter === 'trips') return job.name.includes('trip') || job.name.includes('✈️') || job.name.includes('🚢') || job.name.includes('🇮🇹')
-    return true
+    return getJobCategory(job) === filter
   })
 
   const sortedJobs = [...filteredJobs].sort((a, b) => {
@@ -115,10 +140,23 @@ export default function CronJobs() {
     return aDate - bDate
   })
 
+  // Group by category
+  const grouped = {}
+  sortedJobs.forEach(job => {
+    const cat = getJobCategory(job)
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(job)
+  })
+
+  // Stats
+  const recurring = jobs.filter(j => j.schedule?.kind === 'cron').length
+  const oneTime = jobs.filter(j => j.schedule?.kind === 'at').length
+  const enabled = jobs.filter(j => j.enabled).length
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -126,35 +164,67 @@ export default function CronJobs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Scheduled Jobs</h1>
-          <p className="text-warm-500 mt-1">
-            {jobs.length} automated reminders and tasks
+          <h1 className="text-2xl font-semibold text-text-200 flex items-center gap-3">
+            <Clock className="w-7 h-7 text-teal-400" />
+            Scheduled Jobs
+          </h1>
+          <p className="text-text-400 mt-1">
+            {jobs.length} automated reminders and tasks from OpenClaw
           </p>
         </div>
         <div className="flex items-center gap-3">
           {lastSync && (
-            <span className="text-xs text-warm-400">
+            <span className="text-xs text-text-500">
               Synced: {formatDate(lastSync)}
             </span>
           )}
           <button
             onClick={syncFromOpenClaw}
             disabled={syncing}
-            className="px-3 py-2 rounded-lg bg-sage-500 text-white text-sm font-medium hover:bg-sage-600 disabled:opacity-50 flex items-center gap-2"
-            title="Sync from OpenClaw"
+            className="btn btn-primary flex items-center gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync'}
           </button>
-          <button
-            onClick={fetchJobs}
-            className="p-2 rounded-lg hover:bg-cream-100 text-warm-500"
-            title="Refresh list"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/15 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-teal-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold text-text-200">{recurring}</p>
+              <p className="text-xs text-text-400">Recurring</p>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gold-500/15 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-gold-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold text-text-200">{oneTime}</p>
+              <p className="text-xs text-text-400">One-time</p>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/15 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-teal-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold text-text-200">{enabled}</p>
+              <p className="text-xs text-text-400">Active</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -162,18 +232,19 @@ export default function CronJobs() {
       <div className="flex gap-2 flex-wrap">
         {[
           { key: 'all', label: 'All' },
-          { key: 'daily', label: 'Daily' },
-          { key: 'upcoming', label: 'One-time' },
-          { key: 'birthdays', label: '🎂 Birthdays' },
-          { key: 'trips', label: '✈️ Trips' },
+          { key: 'brief', label: 'Briefs' },
+          { key: 'birthday', label: 'Birthdays' },
+          { key: 'trip', label: 'Trips' },
+          { key: 'monitor', label: 'Monitors' },
+          { key: 'maintenance', label: 'Maintenance' },
         ].map(f => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               filter === f.key
-                ? 'bg-sage-500 text-white'
-                : 'bg-cream-100 text-warm-600 hover:bg-cream-200'
+                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                : 'bg-dark-600/60 text-text-400 border border-dark-300/20 hover:bg-dark-500/60 hover:text-text-300'
             }`}
           >
             {f.label}
@@ -181,139 +252,114 @@ export default function CronJobs() {
         ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-cream-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-sage-100 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-sage-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-warm-800">
-                {jobs.filter(j => j.schedule?.kind === 'cron').length}
-              </p>
-              <p className="text-xs text-warm-500">Recurring</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-cream-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-warm-800">
-                {jobs.filter(j => j.schedule?.kind === 'at').length}
-              </p>
-              <p className="text-xs text-warm-500">One-time</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-cream-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
-              <Gift className="w-5 h-5 text-pink-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-warm-800">
-                {jobs.filter(j => j.name.includes('🎂') || j.name.includes('birthday')).length}
-              </p>
-              <p className="text-xs text-warm-500">Birthdays</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-cream-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Plane className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-warm-800">
-                {jobs.filter(j => j.name.includes('✈️') || j.name.includes('🚢') || j.name.includes('🇮🇹') || j.name.includes('trip')).length}
-              </p>
-              <p className="text-xs text-warm-500">Trips</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Jobs List */}
-      <div className="space-y-3">
-        {sortedJobs.map((job) => {
-          const Icon = getJobIcon(job.name)
-          const colorClass = getJobColor(job.name)
-          const timeUntil = getTimeUntil(job.next_run)
-          
+      {/* Grouped Jobs */}
+      {filter === 'all' ? (
+        Object.entries(grouped).map(([cat, catJobs]) => {
+          const catInfo = categoryMap[cat] || categoryMap.other
+          const CatIcon = catInfo.icon
           return (
-            <div
-              key={job.id}
-              className={`bg-white rounded-xl border ${colorClass} p-4 hover:shadow-sm transition-all`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    job.enabled ? 'bg-white' : 'bg-warm-100'
-                  }`}>
-                    <Icon className={`w-5 h-5 ${job.enabled ? 'text-warm-600' : 'text-warm-400'}`} />
-                  </div>
-                  <div>
-                    <h3 className={`font-medium ${job.enabled ? 'text-warm-800' : 'text-warm-400'}`}>
-                      {job.name}
-                    </h3>
-                    <p className="text-sm text-warm-500 mt-0.5">
-                      {job.payload_summary}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-warm-700">
-                      {formatDate(job.next_run)}
-                    </p>
-                    {timeUntil && (
-                      <p className={`text-xs ${
-                        timeUntil === 'Past' ? 'text-warm-400' :
-                        timeUntil === 'Soon' ? 'text-red-500 font-medium' :
-                        'text-sage-600'
-                      }`}>
-                        {timeUntil}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {job.enabled ? (
-                      <CheckCircle2 className="w-5 h-5 text-sage-500" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-warm-300" />
-                    )}
-                  </div>
-                </div>
+            <div key={cat} className="space-y-3">
+              <h2 className="text-sm font-medium text-text-400 uppercase tracking-wide flex items-center gap-2">
+                <CatIcon className={`w-4 h-4 ${catInfo.color}`} />
+                {catInfo.label} ({catJobs.length})
+              </h2>
+              <div className="space-y-2">
+                {catJobs.map((job, i) => (
+                  <JobCard key={job.id} job={job} cat={cat} index={i} />
+                ))}
               </div>
-              
-              {job.last_run && (
-                <div className="mt-3 pt-3 border-t border-cream-100 flex items-center gap-2 text-xs text-warm-400">
-                  <span>Last run: {formatDate(job.last_run)}</span>
-                  {job.last_status && (
-                    <span className={`px-2 py-0.5 rounded-full ${
-                      job.last_status === 'ok' ? 'bg-sage-100 text-sage-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {job.last_status}
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           )
-        })}
-      </div>
+        })
+      ) : (
+        <div className="space-y-2">
+          {sortedJobs.map((job, i) => (
+            <JobCard key={job.id} job={job} cat={getJobCategory(job)} index={i} />
+          ))}
+        </div>
+      )}
 
       {sortedJobs.length === 0 && (
-        <div className="text-center py-12 text-warm-400">
-          No jobs match this filter
+        <div className="card text-center py-12">
+          <Clock className="w-12 h-12 text-text-600 mx-auto mb-3" />
+          <p className="text-text-400 text-lg">No jobs match this filter</p>
+          <p className="text-text-500 text-sm mt-1">Try syncing from OpenClaw or changing the filter</p>
+        </div>
+      )}
+
+      {jobs.length === 0 && (
+        <div className="card text-center py-12">
+          <Clock className="w-12 h-12 text-text-600 mx-auto mb-3" />
+          <h3 className="text-text-300 text-lg font-medium">No scheduled jobs yet</h3>
+          <p className="text-text-500 text-sm mt-1">
+            Click "Sync" to pull jobs from OpenClaw, or they'll appear when Kate schedules them.
+          </p>
         </div>
       )}
     </div>
+  )
+}
+
+function JobCard({ job, cat, index }) {
+  const catInfo = categoryMap[cat] || categoryMap.other
+  const CatIcon = catInfo.icon
+  const timeUntil = getTimeUntil(job.next_run)
+
+  return (
+    <motion.div
+      custom={index}
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="card card-hover"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${catInfo.bg}`}>
+            <CatIcon className={`w-5 h-5 ${catInfo.color}`} />
+          </div>
+          <div className="min-w-0">
+            <h3 className={`text-base font-medium truncate ${job.enabled ? 'text-text-200' : 'text-text-500'}`}>
+              {job.name}
+            </h3>
+            {job.payload_summary && (
+              <p className="text-sm text-text-400 mt-0.5 truncate">{job.payload_summary}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {/* Next Run */}
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-medium text-text-300">
+              {formatDate(job.next_run)}
+            </p>
+            {timeUntil && (
+              <p className={`text-xs ${timeUntil.color}`}>
+                {timeUntil.text}
+              </p>
+            )}
+          </div>
+
+          {/* Status Badge */}
+          {job.last_status && statusBadge(job.last_status)}
+
+          {/* Enabled/Disabled */}
+          {job.enabled ? (
+            <CheckCircle2 className="w-5 h-5 text-teal-400 flex-shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-text-600 flex-shrink-0" />
+          )}
+        </div>
+      </div>
+
+      {/* Last run info on mobile */}
+      {job.last_run && (
+        <div className="mt-3 pt-3 border-t border-dark-300/20 flex items-center gap-3 text-xs text-text-500">
+          <span>Last run: {formatDate(job.last_run)}</span>
+          {job.last_status && statusBadge(job.last_status)}
+        </div>
+      )}
+    </motion.div>
   )
 }

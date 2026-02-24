@@ -33,7 +33,7 @@ const severityColors = {
   critical: 'bg-red-500/15 text-red-400 border-red-200',
   high: 'bg-orange-500/15 text-orange-400 border-orange-200',
   medium: 'bg-yellow-500/15 text-yellow-400 border-yellow-200',
-  low: 'bg-teal-500/15 text-teal-400 border-sage-200',
+  low: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
 }
 
 const statusColors = {
@@ -96,7 +96,7 @@ export default function QAPI() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -115,14 +115,14 @@ export default function QAPI() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div 
           onClick={() => setFilter('open')}
-          className={`card cursor-pointer transition-all ${filter === 'open' ? 'ring-2 ring-sage-400' : ''}`}
+          className={`card cursor-pointer transition-all ${filter === 'open' ? 'ring-2 ring-gold-500' : ''}`}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-text-400">Open</p>
               <p className="text-2xl font-semibold text-red-500">{getStatusCount('open')}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-100 flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-500/15 flex items-center justify-center">
               <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
             </div>
           </div>
@@ -130,44 +130,44 @@ export default function QAPI() {
 
         <div 
           onClick={() => setFilter('investigating')}
-          className={`card cursor-pointer transition-all ${filter === 'investigating' ? 'ring-2 ring-sage-400' : ''}`}
+          className={`card cursor-pointer transition-all ${filter === 'investigating' ? 'ring-2 ring-gold-500' : ''}`}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-text-400">Investigating</p>
-              <p className="text-2xl font-semibold text-yellow-600">{getStatusCount('investigating')}</p>
+              <p className="text-2xl font-semibold text-yellow-400">{getStatusCount('investigating')}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
-              <Search className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/15 flex items-center justify-center">
+              <Search className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
             </div>
           </div>
         </div>
 
         <div 
           onClick={() => setFilter('resolved')}
-          className={`card cursor-pointer transition-all ${filter === 'resolved' ? 'ring-2 ring-sage-400' : ''}`}
+          className={`card cursor-pointer transition-all ${filter === 'resolved' ? 'ring-2 ring-gold-500' : ''}`}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-text-400">Resolved</p>
-              <p className="text-2xl font-semibold text-sage-600">{getStatusCount('resolved')}</p>
+              <p className="text-2xl font-semibold text-teal-400">{getStatusCount('resolved')}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-sage-100 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-sage-500" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/15 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-teal-400" />
             </div>
           </div>
         </div>
 
         <div 
           onClick={() => setFilter('all')}
-          className={`card cursor-pointer transition-all ${filter === 'all' ? 'ring-2 ring-sage-400' : ''}`}
+          className={`card cursor-pointer transition-all ${filter === 'all' ? 'ring-2 ring-gold-500' : ''}`}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-text-400">Total</p>
               <p className="text-2xl font-semibold text-text-200">{incidents.length}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cream-200 flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-dark-500 flex items-center justify-center">
               <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-text-400" />
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function QAPI() {
           className="w-full flex items-center justify-between mb-4"
         >
           <h2 className="font-semibold text-text-200 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-sage-500" />
+            <BarChart3 className="w-5 h-5 text-teal-400" />
             Incident Trends
           </h2>
           {showTrends ? <ChevronUp className="w-5 h-5 text-text-500" /> : <ChevronDown className="w-5 h-5 text-text-500" />}
@@ -191,21 +191,21 @@ export default function QAPI() {
           <div className="space-y-6">
             {/* Stats Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-cream-50">
+              <div className="p-4 rounded-xl bg-dark-600/50">
                 <p className="text-sm text-text-400">Avg Resolution Time</p>
                 <p className="text-2xl font-semibold text-text-200">
                   {trends.avgResolutionDays ? `${trends.avgResolutionDays} days` : 'N/A'}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-cream-50">
+              <div className="p-4 rounded-xl bg-dark-600/50">
                 <p className="text-sm text-text-400">Total This Period</p>
                 <p className="text-2xl font-semibold text-text-200">
                   {trends.trends?.reduce((sum, t) => sum + t.total, 0) || 0}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-sage-50">
+              <div className="p-4 rounded-xl bg-teal-500/10">
                 <p className="text-sm text-text-400">Resolution Rate</p>
-                <p className="text-2xl font-semibold text-sage-600">
+                <p className="text-2xl font-semibold text-teal-400">
                   {trends.trends?.length > 0 
                     ? `${Math.round(
                         (trends.trends.reduce((sum, t) => sum + t.resolved, 0) / 
@@ -264,12 +264,12 @@ export default function QAPI() {
                         <span className={`w-20 text-sm capitalize badge ${severityColors[sev.severity]}`}>
                           {sev.severity}
                         </span>
-                        <div className="flex-1 h-2 bg-cream-200 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-dark-500 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               sev.severity === 'critical' ? 'bg-red-500' :
                               sev.severity === 'high' ? 'bg-orange-500' :
-                              sev.severity === 'medium' ? 'bg-yellow-500' : 'bg-sage-500'
+                              sev.severity === 'medium' ? 'bg-yellow-500' : 'bg-teal-500/100'
                             }`}
                             style={{ width: `${percentage}%` }}
                           />
@@ -292,9 +292,9 @@ export default function QAPI() {
             {filter === 'all' ? 'All Incidents' : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Incidents`}
           </h2>
           {filter !== 'all' && (
-            <button 
+            <button
               onClick={() => setFilter('all')}
-              className="text-sm text-sage-600 hover:text-sage-700"
+              className="text-sm text-teal-400 hover:text-teal-300"
             >
               Show all
             </button>
@@ -314,7 +314,7 @@ export default function QAPI() {
                 <div
                   key={incident.id}
                   onClick={() => setSelectedIncident(incident)}
-                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-cream-50 hover:bg-dark-500/50 transition-colors cursor-pointer group"
+                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-dark-600/50 hover:bg-dark-500/50 transition-colors cursor-pointer group"
                 >
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${statusColors[incident.status]}`}>
                     <StatusIcon className="w-5 h-5" />
@@ -347,12 +347,12 @@ export default function QAPI() {
       {/* About QAPI */}
       <div className="card bg-teal-500/10 border-teal-500/20">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-sage-200 flex items-center justify-center flex-shrink-0">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-sage-700" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-500/15 flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-teal-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-sage-800">About Kate's QAPI System</h3>
-            <p className="text-sage-700 text-sm mt-1">
+            <h3 className="font-semibold text-text-200">About Kate's QAPI System</h3>
+            <p className="text-text-300 text-sm mt-1">
               Quality Assurance & Performance Improvement tracks incidents, conducts root cause analysis, 
               and implements corrective actions. When something goes wrong, QAPI Manager investigates 
               and ensures continuous improvement.
@@ -379,7 +379,7 @@ function IncidentModal({ incident, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-dark-700 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-cream-200">
+        <div className="flex items-center justify-between p-4 border-b border-dark-300/30">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${statusColors[incident.status]}`}>
               <StatusIcon className="w-5 h-5" />
@@ -413,7 +413,7 @@ function IncidentModal({ incident, onClose }) {
           )}
 
           {incident.root_cause && (
-            <div className="mb-6 p-4 rounded-xl bg-cream-50">
+            <div className="mb-6 p-4 rounded-xl bg-dark-600/50">
               <h3 className="text-sm font-medium text-text-400 mb-2 flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 Root Cause Analysis
@@ -423,16 +423,16 @@ function IncidentModal({ incident, onClose }) {
           )}
 
           {incident.corrective_action && (
-            <div className="mb-6 p-4 rounded-xl bg-sage-50">
-              <h3 className="text-sm font-medium text-sage-700 mb-2 flex items-center gap-2">
+            <div className="mb-6 p-4 rounded-xl bg-teal-500/10">
+              <h3 className="text-sm font-medium text-teal-400 mb-2 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Corrective Action
               </h3>
-              <p className="text-sage-800 whitespace-pre-wrap">{incident.corrective_action}</p>
+              <p className="text-text-300 whitespace-pre-wrap">{incident.corrective_action}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-cream-200">
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dark-300/30">
             <div>
               <span className="text-sm text-text-500">Created</span>
               <p className="text-text-300">

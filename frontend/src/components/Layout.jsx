@@ -21,11 +21,15 @@ import {
   ChevronRight,
   Wallet,
   Cpu,
+  Baby,
+  Gift,
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Assignments', href: '/assignments', icon: KanbanSquare },
+  { name: 'Bennett', href: '/bennett', icon: Baby },
+  { name: 'Gifts', href: '/gifts', icon: Gift },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Questions', href: '/questions', icon: HelpCircle },
   { name: 'Family', href: '/family', icon: Heart },

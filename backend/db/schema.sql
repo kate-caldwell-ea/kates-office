@@ -173,6 +173,82 @@ CREATE TABLE IF NOT EXISTS ai_budget_alerts (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Security alerts
+CREATE TABLE IF NOT EXISTS security_alerts (
+    id TEXT PRIMARY KEY,
+    type TEXT DEFAULT 'info', -- 'info', 'warning', 'critical'
+    severity TEXT DEFAULT 'info', -- 'info', 'advisory', 'critical'
+    title TEXT NOT NULL,
+    description TEXT,
+    source TEXT,
+    source_url TEXT,
+    recommendation TEXT,
+    status TEXT DEFAULT 'new', -- 'new', 'acknowledged', 'resolved'
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Security recommendations
+CREATE TABLE IF NOT EXISTS security_recommendations (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    priority TEXT DEFAULT 'medium', -- 'high', 'medium', 'low'
+    category TEXT,
+    status TEXT DEFAULT 'pending', -- 'pending', 'implemented', 'dismissed'
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Security community issues
+CREATE TABLE IF NOT EXISTS security_community_issues (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT, -- 'frustration', 'bug', 'feature_request', 'tip'
+    mentions INTEGER DEFAULT 1,
+    source TEXT,
+    source_url TEXT,
+    qapi_correlation TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Bennett food introduction log
+CREATE TABLE IF NOT EXISTS bennett_foods (
+    id TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    food TEXT NOT NULL,
+    category TEXT, -- 'fruit', 'vegetable', 'grain', 'protein', 'dairy'
+    reaction TEXT, -- 'loved', 'okay', 'disliked', 'allergic'
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Bennett milestones
+CREATE TABLE IF NOT EXISTS bennett_milestones (
+    id TEXT PRIMARY KEY,
+    date TEXT,
+    milestone TEXT NOT NULL,
+    category TEXT, -- 'motor', 'language', 'social', 'cognitive'
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Gift tracker
+CREATE TABLE IF NOT EXISTS gifts (
+    id TEXT PRIMARY KEY,
+    recipient TEXT NOT NULL,
+    birthday TEXT,
+    budget_min REAL,
+    budget_max REAL,
+    year INTEGER,
+    gift_idea TEXT,
+    status TEXT DEFAULT 'upcoming', -- 'upcoming', 'researching', 'selected', 'ordered', 'shipped', 'delivered'
+    purchase_url TEXT,
+    cost REAL,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
@@ -183,3 +259,10 @@ CREATE INDEX IF NOT EXISTS idx_budgets_category ON budgets(category);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_log_timestamp ON ai_usage_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_log_session ON ai_usage_log(session_key);
 CREATE INDEX IF NOT EXISTS idx_ai_budget_alerts_date ON ai_budget_alerts(date);
+CREATE INDEX IF NOT EXISTS idx_security_alerts_status ON security_alerts(status);
+CREATE INDEX IF NOT EXISTS idx_security_recs_status ON security_recommendations(status);
+CREATE INDEX IF NOT EXISTS idx_bennett_foods_date ON bennett_foods(date);
+CREATE INDEX IF NOT EXISTS idx_bennett_milestones_date ON bennett_milestones(date);
+CREATE INDEX IF NOT EXISTS idx_gifts_recipient ON gifts(recipient);
+CREATE INDEX IF NOT EXISTS idx_gifts_status ON gifts(status);
+CREATE INDEX IF NOT EXISTS idx_qapi_incidents_created ON qapi_incidents(created_at);

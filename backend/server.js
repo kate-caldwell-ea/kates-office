@@ -1287,6 +1287,534 @@ app.get('/api/trips', (req, res) => {
   res.json(data);
 });
 
+// ============= QUESTIONS API =============
+
+// Get all question sets
+app.get('/api/questions', (req, res) => {
+  const sets = db.prepare(`
+    SELECT * FROM daily_questions ORDER BY date DESC LIMIT 30
+  `).all();
+  sets.forEach(s => {
+    s.questions = s.questions ? JSON.parse(s.questions) : [];
+    s.answers = s.answers ? JSON.parse(s.answers) : [];
+  });
+  res.json(sets);
+});
+
+// Get today's questions
+app.get('/api/questions/today', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const set = db.prepare('SELECT * FROM daily_questions WHERE date = ?').get(today);
+  if (!set) return res.json(null);
+  set.questions = set.questions ? JSON.parse(set.questions) : [];
+  set.answers = set.answers ? JSON.parse(set.answers) : [];
+  res.json(set);
+});
+
+// Create question set (Kate posts daily)
+app.post('/api/questions', (req, res) => {
+  const id = req.body.id || uuidv4();
+  const { date, questions } = req.body;
+  const dateVal = date || new Date().toISOString().split('T')[0];
+
+  db.prepare(`
+    INSERT INTO daily_questions (id, date, questions)
+    VALUES (?, ?, ?)
+  `).run(id, dateVal, JSON.stringify(questions));
+
+  const set = db.prepare('SELECT * FROM daily_questions WHERE id = ?').get(id);
+  set.questions = JSON.parse(set.questions);
+  set.answers = set.answers ? JSON.parse(set.answers) : [];
+
+  logActivity('questions_created', `New daily questions for ${dateVal}`, 'questions', id);
+  broadcast('questions_created', set);
+
+  res.status(201).json(set);
+});
+
+// Update answers/status
+app.patch('/api/questions/:id', (req, res) => {
+  const { id } = req.params;
+  const { answers, status } = req.body;
+  const updates = [];
+  const values = [];
+
+  if (answers !== undefined) { updates.push('answers = ?'); values.push(JSON.stringify(answers)); }
+  if (status !== undefined) { updates.push('status = ?'); values.push(status); }
+  if (status === 'answered') { updates.push('answered_at = datetime("now")'); }
+
+  if (updates.length === 0) return res.status(400).json({ error: 'No updates provided' });
+
+  values.push(id);
+  db.prepare(`UPDATE daily_questions SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+  const set = db.prepare('SELECT * FROM daily_questions WHERE id = ?').get(id);
+  if (!set) return res.status(404).json({ error: 'Question set not found' });
+  set.questions = set.questions ? JSON.parse(set.questions) : [];
+  set.answers = set.answers ? JSON.parse(set.answers) : [];
+
+  logActivity('questions_answered', `Answered daily questions`, 'questions', id);
+  res.json(set);
+});
+
+// ============= CRON JOBS API =============
+
+// Get all cron jobs
+app.get('/api/cron', (req, res) => {
+  const jobs = db.prepare('SELECT * FROM cron_jobs ORDER BY next_run ASC').all();
+  jobs.forEach(j => {
+    j.schedule = j.schedule ? JSON.parse(j.schedule) : {};
+  });
+  res.json(jobs);
+});
+
+// Sync from OpenClaw
+app.post('/api/cron/sync', (req, res) => {
+  try {
+    const { execSync } = require('child_process');
+    let output;
+    try {
+      output = execSync('openclaw cron list --json', { timeout: 10000, encoding: 'utf8' });
+    } catch (e) {
+      // If openclaw isn't available, return current jobs
+      const jobs = db.prepare('SELECT * FROM cron_jobs ORDER BY next_run ASC').all();
+      jobs.forEach(j => { j.schedule = j.schedule ? JSON.parse(j.schedule) : {}; });
+      return res.json({ synced: false, message: 'OpenClaw not available', jobs });
+    }
+
+    const cronData = JSON.parse(output);
+    const now = new Date().toISOString();
+
+    const upsert = db.prepare(`
+      INSERT INTO cron_jobs (id, name, schedule, next_run, last_run, last_status, enabled, payload_summary, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name=excluded.name, schedule=excluded.schedule, next_run=excluded.next_run,
+        last_run=excluded.last_run, last_status=excluded.last_status, enabled=excluded.enabled,
+        payload_summary=excluded.payload_summary, synced_at=excluded.synced_at
+    `);
+
+    const syncMany = db.transaction((items) => {
+      for (const item of items) {
+        upsert.run(
+          item.id, item.name, JSON.stringify(item.schedule || {}),
+          item.next_run || null, item.last_run || null, item.last_status || null,
+          item.enabled !== false ? 1 : 0, item.payload_summary || item.name, now
+        );
+      }
+    });
+
+    syncMany(Array.isArray(cronData) ? cronData : []);
+
+    const jobs = db.prepare('SELECT * FROM cron_jobs ORDER BY next_run ASC').all();
+    jobs.forEach(j => { j.schedule = j.schedule ? JSON.parse(j.schedule) : {}; });
+
+    logActivity('cron_synced', `Synced ${jobs.length} cron jobs from OpenClaw`, 'cron', null);
+    res.json({ synced: true, count: jobs.length, jobs });
+  } catch (err) {
+    debugError('Cron sync error:', err.message);
+    res.status(500).json({ error: 'Failed to sync cron jobs', details: err.message });
+  }
+});
+
+// Update cron job notes/status
+app.patch('/api/cron/:id', (req, res) => {
+  const { id } = req.params;
+  const { last_status, last_run, enabled, next_run } = req.body;
+  const updates = [];
+  const values = [];
+
+  if (last_status !== undefined) { updates.push('last_status = ?'); values.push(last_status); }
+  if (last_run !== undefined) { updates.push('last_run = ?'); values.push(last_run); }
+  if (enabled !== undefined) { updates.push('enabled = ?'); values.push(enabled ? 1 : 0); }
+  if (next_run !== undefined) { updates.push('next_run = ?'); values.push(next_run); }
+  updates.push('synced_at = datetime("now")');
+
+  values.push(id);
+  db.prepare(`UPDATE cron_jobs SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+  const job = db.prepare('SELECT * FROM cron_jobs WHERE id = ?').get(id);
+  if (job) job.schedule = job.schedule ? JSON.parse(job.schedule) : {};
+  res.json(job);
+});
+
+// ============= BUDGETS API =============
+
+// Get all budgets
+app.get('/api/budgets', (req, res) => {
+  const budgets = db.prepare('SELECT * FROM budgets ORDER BY name ASC').all();
+  res.json(budgets);
+});
+
+// Get budget status (with actual spending)
+app.get('/api/budgets/status', (req, res) => {
+  const budgets = db.prepare('SELECT * FROM budgets ORDER BY name ASC').all();
+  const now = new Date();
+
+  const result = budgets.map(budget => {
+    let dateFilter = '';
+    const params = [];
+
+    if (budget.period === 'monthly') {
+      const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      dateFilter = 'AND date >= ?';
+      params.push(startOfMonth);
+    } else if (budget.period === 'weekly') {
+      const dayOfWeek = now.getDay();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - dayOfWeek);
+      dateFilter = 'AND date >= ?';
+      params.push(startOfWeek.toISOString().split('T')[0]);
+    } else if (budget.period === 'yearly') {
+      dateFilter = 'AND date >= ?';
+      params.push(`${now.getFullYear()}-01-01`);
+    }
+
+    let categoryFilter = '';
+    if (budget.category) {
+      categoryFilter = 'AND category = ?';
+      params.push(budget.category);
+    }
+
+    const spent = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM expenses WHERE 1=1 ${dateFilter} ${categoryFilter}
+    `).get(...params);
+
+    const spentAmount = spent.total || 0;
+    const remaining = budget.amount - spentAmount;
+    const percentage = budget.amount > 0 ? Math.round((spentAmount / budget.amount) * 100) : 0;
+    const status = percentage >= 100 ? 'exceeded' : percentage >= (budget.alert_threshold * 100) ? 'warning' : 'ok';
+
+    return {
+      ...budget,
+      spent: spentAmount,
+      remaining,
+      percentage,
+      status,
+    };
+  });
+
+  res.json(result);
+});
+
+// Create budget
+app.post('/api/budgets', (req, res) => {
+  const id = uuidv4();
+  const { name, category, amount, period = 'monthly', alert_threshold = 0.8 } = req.body;
+
+  db.prepare(`
+    INSERT INTO budgets (id, name, category, amount, period, alert_threshold)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, name, category || null, amount, period, alert_threshold);
+
+  const budget = db.prepare('SELECT * FROM budgets WHERE id = ?').get(id);
+  logActivity('budget_created', `New budget: ${name} ($${amount}/${period})`, 'budget', id);
+  res.status(201).json(budget);
+});
+
+// Update budget
+app.patch('/api/budgets/:id', (req, res) => {
+  const { id } = req.params;
+  const fields = ['name', 'category', 'amount', 'period', 'alert_threshold'];
+  const setClause = [];
+  const values = [];
+
+  fields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      setClause.push(`${field} = ?`);
+      values.push(req.body[field]);
+    }
+  });
+
+  if (setClause.length === 0) return res.status(400).json({ error: 'No updates provided' });
+  setClause.push('updated_at = datetime("now")');
+  values.push(id);
+
+  db.prepare(`UPDATE budgets SET ${setClause.join(', ')} WHERE id = ?`).run(...values);
+  const budget = db.prepare('SELECT * FROM budgets WHERE id = ?').get(id);
+  res.json(budget);
+});
+
+// Delete budget
+app.delete('/api/budgets/:id', (req, res) => {
+  db.prepare('DELETE FROM budgets WHERE id = ?').run(req.params.id);
+  res.status(204).send();
+});
+
+// ============= EXPENSES TRENDS API =============
+
+app.get('/api/expenses/trends', (req, res) => {
+  const days = parseInt(req.query.days) || 30;
+
+  const trends = db.prepare(`
+    SELECT date as period, SUM(amount) as total, COUNT(*) as count
+    FROM expenses
+    WHERE date >= date('now', ?)
+    GROUP BY date
+    ORDER BY date ASC
+  `).all(`-${days} days`);
+
+  const byCategory = db.prepare(`
+    SELECT category, SUM(amount) as total, COUNT(*) as count
+    FROM expenses
+    WHERE date >= date('now', ?)
+    GROUP BY category
+    ORDER BY total DESC
+  `).all(`-${days} days`);
+
+  res.json({ trends, byCategory });
+});
+
+// ============= SECURITY API =============
+
+// Security summary
+app.get('/api/security/summary', (req, res) => {
+  const criticalAlerts = db.prepare(`SELECT COUNT(*) as count FROM security_alerts WHERE severity = 'critical' AND status != 'resolved'`).get().count;
+  const activeAlerts = db.prepare(`SELECT COUNT(*) as count FROM security_alerts WHERE status != 'resolved'`).get().count;
+  const pendingRecommendations = db.prepare(`SELECT COUNT(*) as count FROM security_recommendations WHERE status = 'pending'`).get().count;
+  const recentIssues = db.prepare(`SELECT COUNT(*) as count FROM security_community_issues WHERE created_at >= datetime('now', '-7 days')`).get().count;
+
+  // QAPI correlations
+  const qapiCorrelations = db.prepare(`SELECT COUNT(*) as count FROM security_community_issues WHERE qapi_correlation IS NOT NULL`).get().count;
+
+  // Latest report info
+  const latestAlert = db.prepare(`SELECT created_at as date FROM security_alerts ORDER BY created_at DESC LIMIT 1`).get();
+
+  res.json({
+    criticalAlerts,
+    activeAlerts,
+    pendingRecommendations,
+    recentIssues,
+    qapiCorrelations,
+    latestReport: latestAlert ? { date: latestAlert.date, summary: `${activeAlerts} active alerts, ${pendingRecommendations} pending recommendations` } : null,
+  });
+});
+
+// Security alerts
+app.get('/api/security/alerts', (req, res) => {
+  const alerts = db.prepare(`SELECT * FROM security_alerts WHERE status != 'resolved' ORDER BY created_at DESC`).all();
+  res.json(alerts);
+});
+
+// Community issues
+app.get('/api/security/community', (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const issues = db.prepare(`SELECT * FROM security_community_issues ORDER BY created_at DESC LIMIT ?`).all(limit);
+  res.json(issues);
+});
+
+// Recommendations
+app.get('/api/security/recommendations', (req, res) => {
+  const status = req.query.status;
+  let query = 'SELECT * FROM security_recommendations';
+  const params = [];
+  if (status) {
+    query += ' WHERE status = ?';
+    params.push(status);
+  }
+  query += ' ORDER BY created_at DESC';
+  const recs = db.prepare(query).all(...params);
+  res.json(recs);
+});
+
+// QAPI Correlations
+app.get('/api/security/correlations', (req, res) => {
+  const corrs = db.prepare(`
+    SELECT sci.*, qi.title as qapi_title, qi.status as qapi_status
+    FROM security_community_issues sci
+    LEFT JOIN qapi_incidents qi ON sci.qapi_correlation = qi.id
+    WHERE sci.qapi_correlation IS NOT NULL
+    ORDER BY sci.created_at DESC
+  `).all();
+  res.json(corrs);
+});
+
+// Update recommendation status
+app.patch('/api/security/recommendations/:id', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  db.prepare('UPDATE security_recommendations SET status = ? WHERE id = ?').run(status, id);
+  const rec = db.prepare('SELECT * FROM security_recommendations WHERE id = ?').get(id);
+  res.json(rec);
+});
+
+// ============= QAPI TRENDS API =============
+
+app.get('/api/qapi/trends', (req, res) => {
+  const days = parseInt(req.query.days) || 180;
+
+  const trends = db.prepare(`
+    SELECT
+      strftime('%Y-%m', created_at) as month,
+      COUNT(*) as total,
+      SUM(CASE WHEN status IN ('resolved', 'closed') THEN 1 ELSE 0 END) as resolved,
+      SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
+      SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high
+    FROM qapi_incidents
+    WHERE created_at >= date('now', ?)
+    GROUP BY strftime('%Y-%m', created_at)
+    ORDER BY month ASC
+  `).all(`-${days} days`);
+
+  // Average resolution time
+  const resolved = db.prepare(`
+    SELECT AVG(julianday(resolved_at) - julianday(created_at)) as avg_days
+    FROM qapi_incidents
+    WHERE resolved_at IS NOT NULL AND created_at >= date('now', ?)
+  `).get(`-${days} days`);
+
+  res.json({
+    trends,
+    avgResolutionDays: resolved?.avg_days ? Math.round(resolved.avg_days * 10) / 10 : null,
+  });
+});
+
+// ============= BENNETT TRACKER API =============
+
+// Get all foods
+app.get('/api/bennett/foods', (req, res) => {
+  const foods = db.prepare('SELECT * FROM bennett_foods ORDER BY date DESC').all();
+  res.json(foods);
+});
+
+// Add food
+app.post('/api/bennett/foods', (req, res) => {
+  const id = uuidv4();
+  const { date, food, category, reaction, notes } = req.body;
+
+  db.prepare(`
+    INSERT INTO bennett_foods (id, date, food, category, reaction, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, date || new Date().toISOString().split('T')[0], food, category || null, reaction || null, notes || null);
+
+  const entry = db.prepare('SELECT * FROM bennett_foods WHERE id = ?').get(id);
+  logActivity('bennett_food_added', `New food intro: ${food}`, 'bennett', id);
+  broadcast('bennett_food_added', entry);
+  res.status(201).json(entry);
+});
+
+// Update food entry
+app.patch('/api/bennett/foods/:id', (req, res) => {
+  const { id } = req.params;
+  const fields = ['date', 'food', 'category', 'reaction', 'notes'];
+  const setClause = [];
+  const values = [];
+
+  fields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      setClause.push(`${field} = ?`);
+      values.push(req.body[field]);
+    }
+  });
+
+  if (setClause.length === 0) return res.status(400).json({ error: 'No updates provided' });
+  values.push(id);
+  db.prepare(`UPDATE bennett_foods SET ${setClause.join(', ')} WHERE id = ?`).run(...values);
+
+  const entry = db.prepare('SELECT * FROM bennett_foods WHERE id = ?').get(id);
+  res.json(entry);
+});
+
+// Delete food entry
+app.delete('/api/bennett/foods/:id', (req, res) => {
+  db.prepare('DELETE FROM bennett_foods WHERE id = ?').run(req.params.id);
+  res.status(204).send();
+});
+
+// Get all milestones
+app.get('/api/bennett/milestones', (req, res) => {
+  const milestones = db.prepare('SELECT * FROM bennett_milestones ORDER BY date DESC').all();
+  res.json(milestones);
+});
+
+// Add milestone
+app.post('/api/bennett/milestones', (req, res) => {
+  const id = uuidv4();
+  const { date, milestone, category, notes } = req.body;
+
+  db.prepare(`
+    INSERT INTO bennett_milestones (id, date, milestone, category, notes)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, date || null, milestone, category || null, notes || null);
+
+  const entry = db.prepare('SELECT * FROM bennett_milestones WHERE id = ?').get(id);
+  logActivity('bennett_milestone', `Milestone: ${milestone}`, 'bennett', id);
+  broadcast('bennett_milestone', entry);
+  res.status(201).json(entry);
+});
+
+// Delete milestone
+app.delete('/api/bennett/milestones/:id', (req, res) => {
+  db.prepare('DELETE FROM bennett_milestones WHERE id = ?').run(req.params.id);
+  res.status(204).send();
+});
+
+// ============= GIFTS API =============
+
+// Get all gifts
+app.get('/api/gifts', (req, res) => {
+  const { year, recipient } = req.query;
+  let query = 'SELECT * FROM gifts WHERE 1=1';
+  const params = [];
+
+  if (year) { query += ' AND year = ?'; params.push(parseInt(year)); }
+  if (recipient) { query += ' AND recipient = ?'; params.push(recipient); }
+
+  query += ' ORDER BY birthday ASC, created_at DESC';
+  const gifts = db.prepare(query).all(...params);
+  res.json(gifts);
+});
+
+// Create gift entry
+app.post('/api/gifts', (req, res) => {
+  const id = uuidv4();
+  const { recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes } = req.body;
+
+  db.prepare(`
+    INSERT INTO gifts (id, recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, recipient, birthday || null, budget_min || null, budget_max || null,
+    year || new Date().getFullYear(), gift_idea || null, status || 'upcoming',
+    purchase_url || null, cost || null, notes || null);
+
+  const gift = db.prepare('SELECT * FROM gifts WHERE id = ?').get(id);
+  logActivity('gift_added', `Gift for ${recipient}: ${gift_idea || 'TBD'}`, 'gift', id);
+  broadcast('gift_added', gift);
+  res.status(201).json(gift);
+});
+
+// Update gift
+app.patch('/api/gifts/:id', (req, res) => {
+  const { id } = req.params;
+  const fields = ['recipient', 'birthday', 'budget_min', 'budget_max', 'year', 'gift_idea', 'status', 'purchase_url', 'cost', 'notes'];
+  const setClause = [];
+  const values = [];
+
+  fields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      setClause.push(`${field} = ?`);
+      values.push(req.body[field]);
+    }
+  });
+
+  if (setClause.length === 0) return res.status(400).json({ error: 'No updates provided' });
+  setClause.push('updated_at = datetime("now")');
+  values.push(id);
+
+  db.prepare(`UPDATE gifts SET ${setClause.join(', ')} WHERE id = ?`).run(...values);
+
+  const gift = db.prepare('SELECT * FROM gifts WHERE id = ?').get(id);
+  broadcast('gift_updated', gift);
+  res.json(gift);
+});
+
+// Delete gift
+app.delete('/api/gifts/:id', (req, res) => {
+  db.prepare('DELETE FROM gifts WHERE id = ?').run(req.params.id);
+  res.status(204).send();
+});
+
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendDistPath, 'index.html'));

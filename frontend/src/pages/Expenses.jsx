@@ -152,8 +152,11 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-text-200">Expenses</h1>
-          <p className="text-text-400 mt-1">Track spending and manage budgets</p>
+          <h1 className="text-2xl font-semibold text-text-200 flex items-center gap-3">
+            <DollarSign className="w-7 h-7 text-gold-400" />
+            Household & Personal Spending
+          </h1>
+          <p className="text-text-400 mt-1">Mercury transactions, subscriptions, groceries, and personal purchases — not AI costs</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button 
