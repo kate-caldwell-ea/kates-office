@@ -278,3 +278,23 @@ Create a simple Node.js utility that Kate calls to push data:
   ```
 - Test server: `cd backend && timeout 5 node server.js || true`
 - When done: `openclaw system event --text 'Done: Kate Office master improvement complete' --mode now`
+
+---
+
+## ADDITIONAL REQUIREMENTS (added during review)
+
+### Gift Tracker Sorting
+- Default sort: closest upcoming birthday FIRST
+- Show countdown (e.g., "12 days away") prominently
+
+### Friends Section
+- Gift tracker must include a FRIENDS section in addition to Family
+- Current friends tracked:
+  - Jamie Corell — Jan 24 (1979), Pensacola FL, $40-75 budget
+  - Nick Miller — Feb 13 (1985), Coloma MI, $40-75 budget
+- Same gift pipeline as family: researching → selected → ordered → shipped → delivered
+- Friends and Family should be visually grouped/separated (tabs or sections)
+
+### Daily Questions
+- Posted to Kate's Office in the MORNING (with 7 AM brief), NOT at 3:30 PM
+- 3:30 PM is only a Telegram reminder if questions are still unanswered
