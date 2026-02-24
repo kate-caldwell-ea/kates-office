@@ -89,6 +89,56 @@ try {
   // Seed default AI budget row
   db.prepare(`INSERT OR IGNORE INTO ai_budget (id, daily_limit_usd, alert_threshold_pct, hard_stop_enabled) VALUES ('default', 40.00, 75.0, 1)`).run();
   debug('AI budget seed data ensured');
+
+  // Migration: Add group_type column to gifts table if missing
+  try {
+    db.prepare(`ALTER TABLE gifts ADD COLUMN group_type TEXT DEFAULT 'family'`).run();
+    debug('Added group_type column to gifts table');
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Seed gift recipients for current year if none exist
+  const currentYear = new Date().getFullYear();
+  const existingGifts = db.prepare('SELECT COUNT(*) as count FROM gifts WHERE year = ?').get(currentYear);
+  if (existingGifts.count === 0) {
+    debug('Seeding gift recipients for ' + currentYear);
+    const seedGifts = db.prepare(`
+      INSERT OR IGNORE INTO gifts (id, recipient, birthday, budget_min, budget_max, year, status, group_type, notes)
+      VALUES (?, ?, ?, ?, ?, ?, 'upcoming', ?, ?)
+    `);
+    const seedMany = db.transaction((entries) => {
+      for (const e of entries) {
+        seedGifts.run(uuidv4(), e.recipient, e.birthday, e.budget_min, e.budget_max, currentYear, e.group_type, e.notes || null);
+      }
+    });
+    seedMany([
+      // Family
+      { recipient: 'Kamryn', birthday: '02-16', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Niece' },
+      { recipient: 'Marley', birthday: '02-27', budget_min: 30, budget_max: 50, group_type: 'family', notes: 'Great-niece' },
+      { recipient: 'Andrew', birthday: '03-02', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Nephew' },
+      { recipient: 'Lisa', birthday: '03-07', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Mother-in-law' },
+      { recipient: 'Morgan', birthday: '03-16', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Niece' },
+      { recipient: 'Carson', birthday: '03-20', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Nephew' },
+      { recipient: 'Chelsea', birthday: '04-04', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Daughter' },
+      { recipient: 'Archer', birthday: '04-20', budget_min: 30, budget_max: 50, group_type: 'family', notes: 'Great-nephew' },
+      { recipient: 'Zack', birthday: '06-19', budget_min: 60, budget_max: 100, group_type: 'special', notes: 'Self' },
+      { recipient: 'Chase', birthday: '06-19', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Nephew' },
+      { recipient: 'Jake', birthday: '06-29', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Partner' },
+      { recipient: 'Motley', birthday: '07-01', budget_min: 30, budget_max: 50, group_type: 'family', notes: 'Great-nephew' },
+      { recipient: 'Megan', birthday: '07-02', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Niece' },
+      { recipient: 'Anniversary', birthday: '07-11', budget_min: 60, budget_max: 100, group_type: 'special', notes: 'Wedding anniversary' },
+      { recipient: 'Bennett', birthday: '08-22', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Son' },
+      { recipient: 'Allison', birthday: '08-31', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Sister' },
+      { recipient: 'Michelle', birthday: '09-14', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Sister' },
+      { recipient: 'Blair', birthday: '11-30', budget_min: 60, budget_max: 100, group_type: 'family', notes: 'Sister' },
+      { recipient: 'Mikalli', birthday: '12-31', budget_min: 40, budget_max: 60, group_type: 'family', notes: 'Niece' },
+      // Friends
+      { recipient: 'Jamie Corell', birthday: '01-24', budget_min: 40, budget_max: 75, group_type: 'friend', notes: 'Pensacola FL' },
+      { recipient: 'Nick Miller', birthday: '02-13', budget_min: 40, budget_max: 75, group_type: 'friend', notes: 'Coloma MI' },
+    ]);
+    debug('Seeded ' + 21 + ' gift recipients for ' + currentYear);
+  }
 } catch (error) {
   debugError('Database initialization error:', error.message);
   debugError('Stack:', error.stack);
@@ -1769,14 +1819,14 @@ app.get('/api/gifts', (req, res) => {
 // Create gift entry
 app.post('/api/gifts', (req, res) => {
   const id = uuidv4();
-  const { recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes } = req.body;
+  const { recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes, group_type } = req.body;
 
   db.prepare(`
-    INSERT INTO gifts (id, recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO gifts (id, recipient, birthday, budget_min, budget_max, year, gift_idea, status, purchase_url, cost, notes, group_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, recipient, birthday || null, budget_min || null, budget_max || null,
     year || new Date().getFullYear(), gift_idea || null, status || 'upcoming',
-    purchase_url || null, cost || null, notes || null);
+    purchase_url || null, cost || null, notes || null, group_type || 'family');
 
   const gift = db.prepare('SELECT * FROM gifts WHERE id = ?').get(id);
   logActivity('gift_added', `Gift for ${recipient}: ${gift_idea || 'TBD'}`, 'gift', id);
@@ -1787,7 +1837,7 @@ app.post('/api/gifts', (req, res) => {
 // Update gift
 app.patch('/api/gifts/:id', (req, res) => {
   const { id } = req.params;
-  const fields = ['recipient', 'birthday', 'budget_min', 'budget_max', 'year', 'gift_idea', 'status', 'purchase_url', 'cost', 'notes'];
+  const fields = ['recipient', 'birthday', 'budget_min', 'budget_max', 'year', 'gift_idea', 'status', 'purchase_url', 'cost', 'notes', 'group_type'];
   const setClause = [];
   const values = [];
 

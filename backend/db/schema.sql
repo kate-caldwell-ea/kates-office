@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS gifts (
     purchase_url TEXT,
     cost REAL,
     notes TEXT,
+    group_type TEXT DEFAULT 'family', -- 'family', 'friend', 'special'
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
